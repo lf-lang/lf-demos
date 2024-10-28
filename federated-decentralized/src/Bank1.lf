@@ -1,7 +1,10 @@
 target C {
-  coordination: decentralized
+  coordination: decentralized,
+  keepalive: true,
+  build-type: Debug,
+  logging: log
 }
-import WebSocketServerString from "lib/WebSocketServerString.lf"
+import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
 
 reactor Branch {
   preamble {=
@@ -27,8 +30,8 @@ reactor Branch {
     lf_print("Balance: %s", balance);
   =}
 }
-federated reactor {
-  w = new WebSocketServerString(
+main reactor {
+  w = new SimpleWebSocketServer(
     initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =}
   )
   b = new Branch()
