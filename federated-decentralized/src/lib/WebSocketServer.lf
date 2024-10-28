@@ -504,9 +504,10 @@ reactor WebSocketServer(
     // because we will create a causality loop. Also, to avoid creating a spurious
     // dependency, we set the destructor here rather than in the reaction to startup.
     // This means it will be reset every time, but this is harmless.
+    // Assume the input is dynamically allocated, including its message field.
     lf_set_destructor(send, web_socket_message_destructor);
     lf_set_copy_constructor(send, web_socket_message_copy_constructor);
-    // This assumes that the input is dynamically allocated, including its message field.
+
     send_message(&self->status, send->value);
   =}
 
