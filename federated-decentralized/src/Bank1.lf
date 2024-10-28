@@ -1,9 +1,8 @@
 target C {
   coordination: decentralized,
-  keepalive: true,
-  build-type: Debug,
-  logging: log
+  keepalive: true
 }
+
 import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
 
 reactor Branch {
@@ -14,12 +13,14 @@ reactor Branch {
   input money: char*
   output response: char*
   state balance: int = 0
+
   reaction(startup) -> response {=
     // Send an initial message to unblock the web server.
     char* message;
     asprintf(&message, "%s", "0");
     lf_set_array(response, message, strlen(message));
   =}
+
   reaction(money) -> response {=
     int received = atoi(money->value); // Will report 0 if not a valid int.
     lf_print("Received %d", received);
@@ -30,10 +31,10 @@ reactor Branch {
     lf_print("Balance: %s", balance);
   =}
 }
-main reactor {
+
+federated reactor {
   w = new SimpleWebSocketServer(
-    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =}
-  )
+      initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =})
   b = new Branch()
   w.received -> b.money
   b.response -> w.in
