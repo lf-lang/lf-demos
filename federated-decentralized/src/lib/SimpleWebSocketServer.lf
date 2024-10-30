@@ -6,13 +6,6 @@
  *
  * This version is limited to a single connection at a time and to string-valued messages.
  *
- * Moreover, this version can be used effectively in federated programs with decentralized
- * coordination. It sets the STAA of the input to `forever`, therefore requiring a response to any
- * received message. An application must provide an input in response to any `received` output. In
- * addition, it has to provide an initial input at startup; otherwise, the reactor will block at the
- * start tag waiting for an input. This is effectively a dataflow style of computation. The initial
- * input is discarded.
- *
  * If an `initial_file` parameter value is provided, it is expected to be a fully-qualified path to
  * a file that this server will serve upon receiving an HTTP request. This can be used to provide
  * the initial HTML (with embedded JavaScript) that will then establish a web socket connection to
@@ -151,7 +144,7 @@ reactor SimpleWebSocketServer(hostport: int = 8080, initial_file: string = {= NU
         case LWS_CALLBACK_FILTER_NETWORK_CONNECTION:
           if (status->ws.connected) {
             // Deny the connection.
-            lf_print_warning("**** A client is already connected. Denying connection.");
+            lf_print_warning("**** Filter: A client is already connected. Denying connection.");
             return 1;
           }
           break;
@@ -439,8 +432,6 @@ reactor SimpleWebSocketServer(hostport: int = 8080, initial_file: string = {= NU
     } else {
       LF_PRINT_LOG("**** Not connected. Discarding message: %s", in->value);
     }
-  =} STP(forever) {=
-    lf_print_error("Unexpected STP violation!");
   =}
 
   reaction(shutdown) {=

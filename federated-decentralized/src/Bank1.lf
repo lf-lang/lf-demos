@@ -1,11 +1,10 @@
 target C {
-  coordination: decentralized,
   keepalive: true
 }
 
 import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
 
-reactor Branch {
+reactor AccountManager {
   preamble {=
     #include <stdlib.h> // For asprintf
     #include <string.h> // For strlen
@@ -14,13 +13,6 @@ reactor Branch {
   output response: char*
   state balance: int = 0
 
-  reaction(startup) -> response {=
-    // Send an initial message to unblock the web server.
-    char* message;
-    asprintf(&message, "%s", "0");
-    lf_set_array(response, message, strlen(message));
-  =}
-
   reaction(money) -> response {=
     int received = atoi(money->value); // Will report 0 if not a valid int.
     lf_print("Received %d", received);
@@ -28,14 +20,14 @@ reactor Branch {
     char* balance;
     asprintf(&balance, "%d", self->balance);
     lf_set_array(response, balance, strlen(balance));
-    lf_print("Balance: %s", balance);
+    lf_print("**** Balance: %s", balance);
   =}
 }
 
-federated reactor {
+main reactor {
   w = new SimpleWebSocketServer(
       initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =})
-  b = new Branch()
-  w.received -> b.money
-  b.response -> w.in
+  a = new AccountManager()
+  w.received -> a.money
+  a.response -> w.in
 }

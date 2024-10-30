@@ -1,0 +1,55 @@
+target C {
+  coordination: decentralized,
+  keepalive: true
+}
+
+import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
+
+reactor AccountManager {
+  preamble {=
+    #include <stdlib.h> // For asprintf
+    #include <string.h> // For strlen
+  =}
+  input money: char*
+  input remote: char*
+  output response: char*
+  state balance: int = 0
+
+  reaction(money, remote) -> response {=
+    int received = 0;
+    if (money->is_present) {
+      lf_print("Local transaction: %s", money->value);
+      received += atoi(money->value); // Will report 0 if not a valid int.
+    }
+    if (remote->is_present) {
+      lf_print("Remote transaction: %s", remote->value);
+      received += atoi(remote->value); // Will report 0 if not a valid int.
+    }
+    self->balance += received;
+    char* balance;
+    asprintf(&balance, "%d", self->balance);
+    lf_set_array(response, balance, strlen(balance));
+    lf_print("**** Balance: %s", balance);
+  =}
+}
+
+reactor Branch(hostport:int = 8080, initial_file:string = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =}) {
+  input remote:char*
+  output received:char*
+
+  w = new SimpleWebSocketServer(
+      initial_file = initial_file,
+      hostport = hostport)
+  a = new AccountManager()
+  w.received -> a.money
+  a.response -> w.in
+  remote -> a.remote
+  w.received -> received
+}
+
+federated reactor {
+  b1 = new Branch()
+  b2 = new Branch(hostport = 8081, initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank2.html" =})
+  b1.received ~> b2.remote
+  b2.received ~> b1.remote
+}

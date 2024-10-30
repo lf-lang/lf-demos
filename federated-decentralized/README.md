@@ -1,14 +1,20 @@
 # federated-decentralized
-This demo explores one of the most sophisticated and experimental parts of Lingua Franca, **federated LF with decentralized coordination**.
+This demo explores one of the most sophisticated and experimental parts of [Lingua Franca](https://lf-lang.org), **[federated LF](https://www.lf-lang.org/docs/next/writing-reactors/distributed-execution/) with [decentralized coordination](https://www.lf-lang.org/docs/next/writing-reactors/distributed-execution#decentralized-coordination)**.
 
 ## Script
 
 1. Prerequisites: Install 
    Java 17,
-   the LF VS Code extension,
+   the [LF VS Code extension](https://www.lf-lang.org/docs/installation#visual-studio-code),
    the [LF command-line tools](https://www.lf-lang.org/docs/installation#cli-tools), and
    <a href="https://libwebsockets.org">libwebsockets</a> (e.g., `brew install libwebsockets`).
-2. 
+2. [Bank1.lf](src/Bank1.lf): Single bank branch with web interface.
+3. [Bank2.lf](src/Bank2.lf): Distributed, no time, web interface.
+4. [Bank3.lf](src/Bank3.lf): Automatic deposits/withdrawls, nondeterministic [Hewitt](https://www.sciencedirect.com/science/article/abs/pii/0004370277900339)-[Agha actors](https://dl.acm.org/doi/abs/10.1145/83880.84528), eventually consistent ([CRDT](https://pages.lip6.fr/Marc.Shapiro/papers/RR-7687.pdf)).
+3. [Bank4.lf](src/Bank4.lf): Disallow overdrafts. Merge operation is no longer commutative. Nondeterministic failure to be eventually consistent.
+3. [Bank5.lf](src/Bank5.lf): Time stamped updates, but no protection against near simultaneous transactions.
+3. [Bank6.lf](src/Bank6.lf): Near simultaneous transactions lead to safe-to-process violations and inconsistency (nondetermintically).
+4. [Bank7.lf](src/Bank7.lf): Chandy and Misra without null messages leads to strong consistency, but poor availability. **FIXME: Doesn't work with STAA == forever.**
 
 ## Explanations
 
