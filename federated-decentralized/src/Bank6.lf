@@ -6,7 +6,7 @@ target C {
 import Source from "Bank3.lf"
 import AccountManager from "Bank4.lf"
 
-reactor Branch(offset:time = 999 ms, period:time = 1 s, amount:int = 100, num:int = 4) {
+reactor Branch(offset:time = 995 ms, period:time = 1 s, amount:int = 100, num:int = 4) {
   input remote:char*
   output received:char*
 

@@ -16,21 +16,19 @@ reactor AccountManager {
   state balance: int = 0
 
   reaction(money, remote) -> response {=
-    // Remote transaction is accepted unconditionally.
+    // Combined transactions are accepted only if balance remains non-negative.
+    int previous_balance = self->balance;
     if (remote->is_present) {
       lf_print("Remote transaction: %s", remote->value);
       self->balance += atoi(remote->value); // Will report 0 if not a valid int.
     }
-    // Local transaction is accepted only if balance remains non-negative.
     if (money->is_present) {
       lf_print("Local transaction: %s", money->value);
-      int local = atoi(money->value); // Will report 0 if not a valid int.
-      if (self->balance + local>= 0) {
-        self->balance += local;
-      } else {
-        lf_print("************ Overdraft! Local transaction denied. Penalty of $30.");
-        self->balance -= 30;
-      }
+      self->balance += atoi(money->value); // Will report 0 if not a valid int.
+    }
+    if (self->balance < 0) {
+      lf_print("************ Overdraft! Transaction denied. Penalty of $30.");
+      self->balance = previous_balance - 30;
     }
     char* balance;
     asprintf(&balance, "%d", self->balance);

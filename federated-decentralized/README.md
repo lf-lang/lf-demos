@@ -14,7 +14,7 @@ This demo explores one of the most sophisticated and experimental parts of [Ling
 3. [Bank4.lf](src/Bank4.lf): Disallow overdrafts. Merge operation is no longer commutative. Nondeterministic failure to be eventually consistent.
 3. [Bank5.lf](src/Bank5.lf): Time stamped updates, but no protection against near simultaneous transactions.
 3. [Bank6.lf](src/Bank6.lf): Near simultaneous transactions lead to safe-to-process violations and inconsistency (nondetermintically).
-4. [Bank7.lf](src/Bank7.lf): Chandy and Misra without null messages leads to strong consistency, but poor availability. **FIXME: Doesn't work with STAA == forever.**
+4. [Bank7.lf](src/Bank7.lf): [Chandy and Misra](https://ieeexplore.ieee.org/abstract/document/1702653) with null messages one second apart.
 
 ## Explanations
 

@@ -1,0 +1,52 @@
+target C {
+  coordination: decentralized,
+  keepalive: true
+}
+
+import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
+import AccountManager from "Bank4.lf"
+
+reactor Branch(
+    hostport:int = 8080,
+    initial_file:string = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =},
+    null_message_interval:time = 1 s
+) {
+  input remote:char*
+  output received:char*
+
+  timer t(0, null_message_interval)
+
+  w = new SimpleWebSocketServer(
+      initial_file = initial_file,
+      hostport = hostport)
+  a = new AccountManager()
+  w.received -> a.money
+  a.response -> w.in
+
+  // Because of dataflow style being used here, need to unblock downstream input at the start tag.
+  reaction(w.received, t) -> received {=
+    if (w.received->is_present) {
+      lf_set_token(received, w.received->token);
+    } else {
+      // Must be startup reaction.
+      char* dummy;
+      asprintf(&dummy, "%d", 0);
+      lf_set_array(received, dummy, strlen(dummy));
+    }
+  =}
+
+  reaction(remote) -> a.remote {=
+    lf_print("Forwarding: %s", remote->value);
+    lf_set_token(a.remote, remote->token);
+  =} STAA(forever) {=
+    lf_print_error("Unexpected STP violation! Forwarding anyway.");
+    lf_set_token(a.remote, remote->token);
+  =}
+}
+
+federated reactor {
+  b1 = new Branch()
+  b2 = new Branch(hostport = 8081, initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank2.html" =})
+  b1.received -> b2.remote
+  b2.received -> b1.remote
+}
