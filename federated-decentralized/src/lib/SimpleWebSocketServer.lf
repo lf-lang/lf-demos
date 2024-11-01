@@ -16,7 +16,6 @@
  *    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "filename.html" =}
  * )  
  * ```
-
  *
  * To send messages to a client, simply provide a string on the `in` port. This must be a
  * dynamically-allocated strings (type `char*`).
@@ -354,6 +353,18 @@ reactor SimpleWebSocketServer(hostport: int = 8080, initial_file: string = {= NU
         LF_MUTEX_UNLOCK(status->mutex);
       }
     }
+
+    // Construct a web_socket_message_t to send the specified message.
+    static void send_string(char* message, server_status_t* status) {
+      web_socket_message_t* to_send = (web_socket_message_t*)malloc(sizeof(web_socket_message_t));
+      char* message_copy;
+      message_copy = (char*)malloc(strlen(message));
+      strcpy(message_copy, message);
+      to_send->length = strlen(message);
+      to_send->message = message_copy;
+      to_send->wsi = status->ws.wsi;
+      send_message(status, to_send);
+    }
   =}
 
   reaction(startup) -> received_action {=
@@ -421,14 +432,16 @@ reactor SimpleWebSocketServer(hostport: int = 8080, initial_file: string = {= NU
     // NOTE: This cannot be before the reaction to connected_action
     // because we will create a causality loop.
     if (self->status.ws.connected) {
-      web_socket_message_t* to_send = (web_socket_message_t*)malloc(sizeof(web_socket_message_t));
-      char* message_copy;
-      message_copy = (char*)malloc(strlen(in->value));
-      strcpy(message_copy, in->value);
-      to_send->length = strlen(in->value);
-      to_send->message = message_copy;
-      to_send->wsi = self->status.ws.wsi;
-      send_message(&self->status, to_send);
+      send_string(in->value, &self->status);
+    } else {
+      LF_PRINT_LOG("**** Not connected. Discarding message: %s", in->value);
+    }
+  =} STAA(0) {=
+    // Handle violations the same as regular inputs.
+    // This is provided so that this reactor will work with decentralized coordination without having to use
+    // physical connections.
+    if (self->status.ws.connected) {
+      send_string(in->value, &self->status);
     } else {
       LF_PRINT_LOG("**** Not connected. Discarding message: %s", in->value);
     }
