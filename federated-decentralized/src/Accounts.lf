@@ -1,0 +1,28 @@
+target C {
+  coordination: decentralized,
+  keepalive: true
+}
+
+import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
+import AccountManager from "lib/AccountManager.lf"
+
+federated reactor {
+  w1 = new SimpleWebSocketServer(
+    hostport = 8080,
+    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =}
+  )
+  w2 = new SimpleWebSocketServer(
+    hostport = 8081,
+    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank2.html" =}
+  )
+  a1 = new AccountManager()
+  a2 = new AccountManager()
+
+  w1.received -> a1.in1
+  w2.received -> a2.in2
+  w1.received -> a2.in1
+  w2.received -> a1.in2
+
+  a1.out -> w1.in
+  a2.out -> w2.in
+}

@@ -12,9 +12,11 @@ This demo explores one of the most sophisticated and experimental parts of [Ling
 3. [Bank2.lf](src/Bank2.lf): Distributed, no time, web interface.
 4. [Bank3.lf](src/Bank3.lf): Automatic deposits/withdrawls, nondeterministic [Hewitt](https://www.sciencedirect.com/science/article/abs/pii/0004370277900339)-[Agha actors](https://dl.acm.org/doi/abs/10.1145/83880.84528), eventually consistent ([CRDT](https://pages.lip6.fr/Marc.Shapiro/papers/RR-7687.pdf)).
 3. [Bank4.lf](src/Bank4.lf): Disallow overdrafts. Merge operation is no longer commutative. Nondeterministic failure to be eventually consistent.
-3. [Bank5.lf](src/Bank5.lf): Time stamped updates, but no protection against near simultaneous transactions.
+3. [Bank5.lf](src/Bank5.lf): Time stamped updates, but no protection against near simultaneous transactions. **Discuss about clock synchronization.**
 3. [Bank6.lf](src/Bank6.lf): Near simultaneous transactions lead to safe-to-process violations and inconsistency (nondetermintically).
-4. [Bank7.lf](src/Bank7.lf): [Chandy and Misra](https://ieeexplore.ieee.org/abstract/document/1702653) with null messages one second apart.
+4. [Bank7.lf](src/Bank7.lf): A solution: [Chandy and Misra](https://ieeexplore.ieee.org/abstract/document/1702653) with null messages one second apart. **This is an approximation of C&M using STAA == forever. It really should be using STA == forever, but that doesn't work with cycles. In fact, C&M doesn't work with zero-delay cycles.**
+5. 4. [Bank8.lf](src/Bank7.lf): Another solution: [PTIDES](https://ieeexplore.ieee.org/abstract/document/4155328) / [Spanner](https://www.doi.org/10.1145/2491245). This uses an STA and STAA offsets of 30 ms. Consistent as long as apparent latency does not exceed 60 ms. **Explain STA and STAA.**
+
 
 ## Explanations
 
