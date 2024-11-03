@@ -8,15 +8,61 @@ This demo explores one of the most sophisticated and experimental parts of [Ling
    the [LF VS Code extension](https://www.lf-lang.org/docs/installation#visual-studio-code),
    the [LF command-line tools](https://www.lf-lang.org/docs/installation#cli-tools), and
    <a href="https://libwebsockets.org">libwebsockets</a> (e.g., `brew install libwebsockets`).
-2. [Bank1.lf](src/Bank1.lf): Single bank branch with web interface.
-3. [Bank2.lf](src/Bank2.lf): Distributed, no time, web interface.
-4. [Bank3.lf](src/Bank3.lf): Automatic deposits/withdrawls, nondeterministic [Hewitt](https://www.sciencedirect.com/science/article/abs/pii/0004370277900339)-[Agha actors](https://dl.acm.org/doi/abs/10.1145/83880.84528), eventually consistent ([CRDT](https://pages.lip6.fr/Marc.Shapiro/papers/RR-7687.pdf)).
-3. [Bank4.lf](src/Bank4.lf): Disallow overdrafts. Merge operation is no longer commutative. Nondeterministic failure to be eventually consistent.
-3. [Bank5.lf](src/Bank5.lf): Time stamped updates, but no protection against near simultaneous transactions. **Discuss about clock synchronization.**
-3. [Bank6.lf](src/Bank6.lf): Near simultaneous transactions lead to safe-to-process violations and inconsistency (nondetermintically).
-4. [Bank7.lf](src/Bank7.lf): A solution: [Chandy and Misra](https://ieeexplore.ieee.org/abstract/document/1702653) with null messages one second apart. **This is an approximation of C&M using STAA == forever. It really should be using STA == forever, but that doesn't work with cycles. In fact, C&M doesn't work with zero-delay cycles.**
-5. 4. [Bank8.lf](src/Bank7.lf): Another solution: [PTIDES](https://ieeexplore.ieee.org/abstract/document/4155328) / [Spanner](https://www.doi.org/10.1145/2491245). This uses an STA and STAA offsets of 30 ms. Consistent as long as apparent latency does not exceed 60 ms. **Explain STA and STAA.**
+2. [Accounts1.lf](src/Accounts1.lf): Distributed, web interface, nondeterministic [Hewitt](https://www.sciencedirect.com/science/article/abs/pii/0004370277900339)-[Agha](https://dl.acm.org/doi/abs/10.1145/83880.84528) actors, but eventually consistent. Updates are [ACID 2.0](https://arxiv.org/abs/0909.1788). Balance state variable is a [CRDT](https://pages.lip6.fr/Marc.Shapiro/papers/RR-7687.pdf).
+3. [Accounts2.lf](src/Accounts2.lf): Overdraft prevention. Non-commutative updates. No longer eventually consistent.
+4. [Accounts3.lf](src/Accounts3.lf): Test of the above that attempts to show lack of eventual consistency.
+3. [Accounts4.lf](src/Accounts4.lf): Time stamped updates, but no protection against near simultaneous transactions. **Discuss about clock synchronization.**
+4. [Accounts5.lf](src/Accounts5.lf): A solution: [Chandy and Misra](https://ieeexplore.ieee.org/abstract/document/1702653) without null messages. This is implemented using `STA == forever` in the `AccountManager` reactors. Updates in the display are delayed arbitrarily until there is activity in the other node.
+5. [Accounts6.lf](src/Accounts6.lf): Adds null messages one second apart. **Note that this does not use C&M for the input to the Server. See Discussion below.**
+5. [Accounts7.lf](src/Accounts7.lf): Another solution: [PTIDES](https://ieeexplore.ieee.org/abstract/document/4155328) / [Spanner](https://www.doi.org/10.1145/2491245). This uses an STA offsets of 30 ms in the `AccountManager` reactors.  This will be consistent as long as apparent latency does not exceed 30 ms. **Note that if STP violations are handled the same way as regular inputs, then we can get inconsistencies. See discussion below.**
 
+**Explain STA and STAA. See Explanation below.**
+
+## Discussion
+
+### Handling STP Violations in Ptides/Spanner
+
+The solution above ignores STP violations, which means that inputs to the `AccountManager` that are out-of-order, will be handled the same way as other inputs and a warning will be issued.  This is probably not good enough for this application. At a minimum, we need eventual consistency, and the consistent value needs to account for all deposits and withdrawls that occur, even if they result in negative balances.
+
+Shulu Li has proved that eventual consistency occurs if _and only if_ the merge operation is commutative, associative, and idemptotent.
+Idempotency is guarateed by the framework in this case because messages are delivered exactly once.
+What are the options to make the operation commutative?
+
+#### Rollback
+Point to Jefferson.
+Can't roll back cash dispensed.
+Cyber-physical systems.
+
+#### Record and Replay
+
+#### Reduce Probability of Inconsistency
+
+### Input to the Web Socket Server
+
+The `SimpleWebSocketServer` raises an interesting conundrum.
+If we insist on the input being handled in tag order relative to the tags of the physical action, we have a big problem.
+It does not work to set the STA because the input depends on the output. It also doesn't work to set the STAA on the input because it becomes possible for the federate to commit to tag _g_ of the physical action and then later recieve an input with tag _h_ < _g_ that is a consequence of the physical action in the _other_ `SimpleWebSocketServer`.
+This will lead to an STP violation.
+
+To handle this, we note that if we assume that the upstream reactor, `AccountManager`, processes events in tag order, then messages will be delivered to the input of the `SimpleWebSocketServer` in tag order.
+There is no need for them to be handled in tag order relative to the physical action.
+Hence, the implementation simply ignores STP violations and handles all inputs the same way regardless of whether they are tardy or not.  Specifically, the reaction to the input `in` looks like this:
+
+```
+  reaction(in) {=
+    // Do something.
+  =} STAA(0) {=
+    // Do the same something.
+  =}
+```
+
+Note that this pattern can also be implemented by just providing no `STAA` clause at all. But in such an implementation, warnings will be issued stating that STP violations occurred and there is no handler.
+
+These assumptions together ensure that the web interfaces are _eventually_ consistent, even if not consistent at a specific tag.  This is adequate for this application.
+
+For this to be correct and not undermine determinism, we must ensure that the reaction to `in` and the reaction to the physical action do not change the state of the reactor.
+This is indeed the case.
+But we can't separate the reactions into separate reactors (which would provide such assurance by construction) because the reactions need access to the same websocket interface to the browser.
 
 ## Explanations
 

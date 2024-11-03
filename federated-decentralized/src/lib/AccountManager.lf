@@ -1,14 +1,13 @@
 target C
 
 /**
- * A simple account manager that accepts deposits or withdrawls on two inputs and
- * maintains a bank balance.  If the deposits and/or widthdrawls at any time result
- * in a negative bank balance, then one or more of the transactions will be rejected
- * and a penalty will be imposed. In particular, if one input is a withdrawl and the
- * other is a deposit, then the withdrawl will be rejected.  If both inputs are
- * withdrawls, then if in1 alone does not result in a negative balance, then the
- * in1 withdrawl will be accepted and the in2 withdrawl rejected. If in1 is rejected,
- * then in2 may be allowed if it does not result in a negative balance.
+ * An account manager that accepts deposits or withdrawls on two inputs, maintains a bank balance,
+ * and prevents overdrafts. If the deposits and/or widthdrawls at any time result in a negative bank
+ * balance, then one or more of the transactions will be rejected and a penalty will be imposed. In
+ * particular, if one input is a withdrawl and the other is a deposit, then the withdrawl will be
+ * rejected. If both inputs are withdrawls, then if in1 alone does not result in a negative balance,
+ * then the in1 withdrawl will be accepted and the in2 withdrawl rejected. If in1 is rejected, then
+ * in2 may be allowed if it does not result in a negative balance.
  *
  * This reactor has an STA parameter so it can be used with decentralized coordination.
  */

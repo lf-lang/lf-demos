@@ -6,6 +6,10 @@
  *
  * This version is limited to a single connection at a time and to string-valued messages.
  *
+ * To provide usability within a federated LF program with decentralized coordination, the input
+ * is handled the same whether there is an STP violation or not.  The tag of the input is not
+ * relevant, so this is safe. The only thing that matters about the input is the order.
+ *
  * If an `initial_file` parameter value is provided, it is expected to be a fully-qualified path to
  * a file that this server will serve upon receiving an HTTP request. This can be used to provide
  * the initial HTML (with embedded JavaScript) that will then establish a web socket connection to

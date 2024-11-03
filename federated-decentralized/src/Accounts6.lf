@@ -1,0 +1,46 @@
+target C {
+  coordination: decentralized,
+  keepalive: true
+}
+
+import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
+import AccountManager from "lib/AccountManager.lf"
+
+reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_message_period: time = 1 s) {
+  input in: char*
+  output received: char*
+  timer t(0, null_message_period)
+  w = new SimpleWebSocketServer(hostport = hostport, initial_file = initial_file)
+  in -> w.in
+  reaction (w.received, t) -> received {=
+    if (w.received->is_present) {
+      lf_set_token(received, w.received->token);
+    } else {
+      // Send a null message.
+      char* message;
+      asprintf(&message, "%d", 0);
+      lf_set_array(received, message, strlen(message));
+    }
+  =}
+}
+
+federated reactor {
+  w1 = new Server(
+    hostport = 8080,
+    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =}
+  )
+  w2 = new Server(
+    hostport = 8081,
+    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank2.html" =}
+  )
+  a1 = new AccountManager(STA = forever)
+  a2 = new AccountManager(STA = forever)
+
+  w1.received -> a1.in1
+  w2.received -> a2.in2
+  w1.received -> a2.in1
+  w2.received -> a1.in2
+
+  a1.out -> w1.in
+  a2.out -> w2.in
+}
