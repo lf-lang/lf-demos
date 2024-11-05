@@ -1,0 +1,49 @@
+target C {
+  coordination: decentralized,
+  keepalive: true
+}
+
+import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
+import AccountManagerWithRecovery from "lib/AccountManagerWithRecovery.lf"
+
+reactor Balance(STA: time = forever) {
+  input tr1: int
+  input tr2: int
+  output balance: int
+  state b: int = 0
+  reaction(tr1, tr2) -> balance {=
+    if (tr1->is_present) self->b += tr1->value;
+    if (tr2->is_present) self->b += tr2->value;
+    lf_set(balance, self->b);
+    lf_print("==== True balance at time " PRINTF_TIME " is %d", lf_time_logical_elapsed(), self->b);
+  =}
+}
+
+federated reactor(true_balance_period: time = 10 s) {
+  w1 = new SimpleWebSocketServer(
+    hostport = 8080,
+    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =}
+  )
+  w2 = new SimpleWebSocketServer(
+    hostport = 8081,
+    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank2.html" =}
+  )
+  a1 = new AccountManagerWithRecovery(STA = 30 ms, true_balance_period = true_balance_period)
+  a2 = new AccountManagerWithRecovery(STA = 30 ms, true_balance_period = true_balance_period)
+
+  b = new Balance()
+
+  w1.received -> a1.local
+  w2.received -> a1.remote
+  w1.received -> a2.remote
+  w2.received -> a2.local
+
+  a1.out -> w1.in
+  a2.out -> w2.in
+
+  a1.actual -> b.tr1
+  a2.actual -> b.tr2
+
+  b.balance -> a1.true_balance after true_balance_period
+  b.balance -> a2.true_balance after true_balance_period
+}
