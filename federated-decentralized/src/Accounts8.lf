@@ -32,6 +32,7 @@ federated reactor(true_balance_period: time = 10 s) {
   a2 = new AccountManagerWithRecovery(STA = 30 ms, true_balance_period = true_balance_period)
 
   b = new Balance()
+  b2 = new Balance()
 
   w1.received -> a1.local
   w2.received -> a1.remote
@@ -44,6 +45,9 @@ federated reactor(true_balance_period: time = 10 s) {
   a1.actual -> b.tr1
   a2.actual -> b.tr2
 
+  a1.actual -> b2.tr1
+  a2.actual -> b2.tr2
+
   b.balance -> a1.true_balance after true_balance_period
-  b.balance -> a2.true_balance after true_balance_period
+  b2.balance -> a2.true_balance after true_balance_period
 }
