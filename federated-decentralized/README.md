@@ -3,7 +3,7 @@ This demo explores one of the most sophisticated and experimental parts of [Ling
 
 **STA and STAA are explained in the appendix below.**
 
-## Script
+## Sequence
 
 1. Prerequisites: Install 
    Java 17,
@@ -16,7 +16,7 @@ This demo explores one of the most sophisticated and experimental parts of [Ling
 3. [Accounts4.lf](src/Accounts4.lf): Time stamped updates, but no protection against near simultaneous transactions. **Discuss about clock synchronization.**
 4. [Accounts5.lf](src/Accounts5.lf): A solution: [Chandy and Misra](https://ieeexplore.ieee.org/abstract/document/1702653) without null messages. This is implemented using `STA == forever` in the `AccountManager` reactors. Updates in the display are delayed arbitrarily until there is activity in the other node.
 5. [Accounts6.lf](src/Accounts6.lf): Adds null messages one second apart. **Note that this does not use C&M for the input to the Server. See Discussion below.**
-5. [Accounts7.lf](src/Accounts7.lf): Another solution: [PTIDES](https://ieeexplore.ieee.org/abstract/document/4155328) / [Spanner](https://www.doi.org/10.1145/2491245). This uses an STA offsets of 30 ms in the `AccountManager` reactors.  This will be consistent as long as apparent latency does not exceed 30 ms. **Note that if STP violations are handled the same way as regular inputs, then we can get inconsistencies.**
+5. [Accounts7.lf](src/Accounts7.lf): Another solution: [PTIDES](https://ieeexplore.ieee.org/abstract/document/4155328) / [Spanner](https://www.doi.org/10.1145/2491245). This uses an STA offsets of 30 ms in the `AccountManager` reactors.  This will be consistent as long as apparent latency does not exceed 30 ms. **What happens if latencies exceed 30 ms?** The [CAL theorem](https://dl.acm.org/doi/10.1145/3609119) tells us that inconsistencies are unavoidable. We've bounded unavailability to 30 ms. If network latencies get large enough (or the network partitions), then inconsistencies cannot be prevented. See also [IT](https://spj.science.org/doi/10.34133/icomputing.0013) and [arXiv](https://arxiv.org/abs/2109.07771) papers.
 
 ### Handling STP Violations in Ptides/Spanner
 
