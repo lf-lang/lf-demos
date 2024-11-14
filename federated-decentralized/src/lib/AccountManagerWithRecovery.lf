@@ -23,9 +23,6 @@ preamble {=
  */
 reactor AccountManagerWithRecovery(STA: time = 0, true_balance_period: time = 10 s, min_spacing = 1 s) {
   preamble {=
-    #include <stdlib.h> // For asprintf
-    #include <string.h> // For strlen
-
     // Return an updated balance and local cash in/out given the previous balance, local
     // cash in/out, and remote cash in/out.  If verbose is true, print information.
     int update(int previous_balance, int local_val, int remote_val, int* actual_cash, bool verbose) {
@@ -68,10 +65,10 @@ reactor AccountManagerWithRecovery(STA: time = 0, true_balance_period: time = 10
     }
   =}
 
-  input local: char*
-  input remote: char*
+  input local: int
+  input remote: int
   input true_balance: int
-  output out: char*  // Remaining balance as a string.
+  output out: int  // Remaining balance.
   output actual: int // The actual change made (cash dispensed or deposited)
 
   state balance: int = 0
@@ -98,8 +95,8 @@ reactor AccountManagerWithRecovery(STA: time = 0, true_balance_period: time = 10
     int remote_val = 0;
     int actual_cash = 0; // Only produce actual output in reaction to non-zero local inputs.
     if (local->is_present) {
-      lf_print("local transaction: %s", local->value);
-      local_val = atoi(local->value);
+      lf_print("local transaction: %d", local->value);
+      local_val = local->value;
       // Record the value for replay.
       if (self->local_transaction_index < self->transaction_size) {
         transaction_t* tr = &self->local_transactions[self->local_transaction_index++];
@@ -114,8 +111,8 @@ reactor AccountManagerWithRecovery(STA: time = 0, true_balance_period: time = 10
       }
     }
     if (remote->is_present) {
-      lf_print("remote transaction: %s", remote->value);
-      remote_val = atoi(remote->value);
+      lf_print("remote transaction: %d", remote->value);
+      remote_val = remote->value;
       // Record the value for replay.
       if (self->remote_transaction_index < self->transaction_size) {
         transaction_t* tr = &self->remote_transactions[self->remote_transaction_index++];
@@ -131,11 +128,8 @@ reactor AccountManagerWithRecovery(STA: time = 0, true_balance_period: time = 10
     }
     self->balance = update(self->balance, local_val, remote_val, &actual_cash, true);
 
-    // Construct string output for web interface.
-    char* result;
-    asprintf(&result, "%d", self->balance);
-    lf_set_array(out, result, strlen(result));
-    lf_print("**** Balance: %s, Local cash in/out: %d", result, actual_cash);
+    lf_set(out, self->balance);
+    lf_print("**** Balance: %d, Local cash in/out: %d", self->balance, actual_cash);
 
     if (actual_cash != 0) {
       lf_set(actual, actual_cash);
@@ -154,7 +148,7 @@ reactor AccountManagerWithRecovery(STA: time = 0, true_balance_period: time = 10
   // update the balance by replaying all the local and remote transactions
   // that have occurred since then.  Note that `true_balance` inputs that
   // arrive in between timer events are ignored.
-  reaction(n) true_balance -> actual {=
+  reaction(n) -> actual {=
     // If the previous reaction did not produce an actual output, produce 0.
     if (!actual->is_present) {
       lf_set(actual, 0);

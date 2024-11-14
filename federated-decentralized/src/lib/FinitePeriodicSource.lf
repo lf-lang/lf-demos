@@ -9,16 +9,14 @@ reactor FinitePeriodicSource(offset:time = 1 s, period:time = 1 s, value:int = 0
     #include <stdlib.h> // For asprintf
     #include <string.h> // For strlen
   =}
-  output out:char*
+  output out:int
   logical action a
   state count:int = 0
   reaction(startup) -> a {=
     lf_schedule(a, self->offset);
   =}
   reaction(a) -> out, a {=
-    char* message;
-    asprintf(&message, "%d", self->value);
-    lf_set_array(out, message, strlen(message));
+    lf_set(out, self->value);
     if (self->count++ < self->repetitions - 1) {
       lf_schedule(a, self->period);
     }

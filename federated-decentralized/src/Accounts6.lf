@@ -3,23 +3,21 @@ target C {
   keepalive: true
 }
 
-import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
+import IntWebSocketServer from "lib/IntWebSocketServer.lf"
 import AccountManager from "lib/AccountManager.lf"
 
 reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_message_period: time = 1 s) {
-  input in: char*
-  output received: char*
+  input in: int
+  output received: int
   timer t(0, null_message_period)
-  w = new SimpleWebSocketServer(hostport = hostport, initial_file = initial_file)
-  in -> w.in
+  w = new IntWebSocketServer(hostport = hostport, initial_file = initial_file)
+  in -> w.response
   reaction (w.received, t) -> received {=
     if (w.received->is_present) {
-      lf_set_token(received, w.received->token);
+      lf_set(received, w.received->value);
     } else {
       // Send a null message.
-      char* message;
-      asprintf(&message, "%d", 0);
-      lf_set_array(received, message, strlen(message));
+      lf_set(received, 0);
     }
   =}
 }

@@ -3,39 +3,33 @@ target C {
   keepalive: true
 }
 
-import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
+import IntWebSocketServer from "lib/IntWebSocketServer.lf"
 
 reactor ACIDAccountManager(STA: time = 0) {
-  preamble {=
-    #include <stdlib.h> // For asprintf
-    #include <string.h> // For strlen
-  =}
-  input in1: char*
-  input in2: char*
-  output out: char*
+  input in1: int
+  input in2: int
+  output out: int
   state balance: int = 0
 
   reaction(in1, in2) -> out {=
     if (in1->is_present) {
-      lf_print("in1 transaction: %s", in1->value);
-      self->balance += atoi(in1->value);
+      lf_print("in1 transaction: %d", in1->value);
+      self->balance += in1->value;
     }
     if (in2->is_present) {
-      lf_print("in2 transaction: %s", in2->value);
-      self->balance += atoi(in2->value);
+      lf_print("in2 transaction: %d", in2->value);
+      self->balance += in2->value;
     }
-    char* result;
-    asprintf(&result, "%d", self->balance);
-    lf_set_array(out, result, strlen(result));
-    lf_print("**** Balance: %s", result);
+    lf_set(out, self->balance);
+    lf_print("**** Balance: %d", self->balance);
   =}
 }
 
 federated reactor {
-  w1 = new SimpleWebSocketServer(
+  w1 = new IntWebSocketServer(
       hostport=8080,
       initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =})
-  w2 = new SimpleWebSocketServer(
+  w2 = new IntWebSocketServer(
       hostport=8081,
       initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank2.html" =})
   a1 = new ACIDAccountManager()
@@ -46,6 +40,6 @@ federated reactor {
   w1.received ~> a2.in1
   w2.received ~> a1.in2
 
-  a1.out ~> w1.in
-  a2.out ~> w2.in
+  a1.out ~> w1.response
+  a2.out ~> w2.response
 }

@@ -3,15 +3,15 @@ target C {
   keepalive: true
 }
 
-import SimpleWebSocketServer from "lib/SimpleWebSocketServer.lf"
+import IntWebSocketServer from "lib/IntWebSocketServer.lf"
 import AccountManager from "lib/AccountManager.lf"
 
 federated reactor {
-  w1 = new SimpleWebSocketServer(
+  w1 = new IntWebSocketServer(
     hostport = 8080,
     initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =}
   )
-  w2 = new SimpleWebSocketServer(
+  w2 = new IntWebSocketServer(
     hostport = 8081,
     initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank2.html" =}
   )
@@ -23,6 +23,6 @@ federated reactor {
   w1.received -> a2.in1
   w2.received -> a1.in2
 
-  a1.out -> w1.in
-  a2.out -> w2.in
+  a1.out -> w1.response
+  a2.out -> w2.response
 }
