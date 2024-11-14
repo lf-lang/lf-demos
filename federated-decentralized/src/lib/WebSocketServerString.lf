@@ -7,11 +7,6 @@
  * This version is simpler to use than WebSocketServer. It is limited to a single connection at a
  * time and to string-valued messages.
  *
- * This version sets the STAA of the input to `forever`, therefore requiring a response.
- * An application must provide an input in response to any `received` output. In addition, it has
- * to provide an initial input at startup; otherwise, the reactor will block at the start tag waiting
- * for an input. This is effectively a dataflow style of computation.
- *
  * If an `initial_file` parameter value is provided, it is expected to be a fully-qualified path to
  * a file that this server will serve upon receiving an HTTP request. This can be used to provide
  * the initial HTML (with embedded JavaScript) that will then establish a web socket connection to
@@ -99,7 +94,5 @@ reactor WebSocketServerString(hostport: int = 8080, initial_file: string = {= NU
       // Web socket is not connected.
       lf_print_warning("Web socket is not connected. Dropping message to send.");
     }
-  =} STAA (forever) {=
-    lf_print_error("Unexpected STP violation!");
   =}
 }

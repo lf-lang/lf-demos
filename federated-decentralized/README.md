@@ -17,6 +17,10 @@ This demo explores one of the most sophisticated and experimental parts of [Ling
 4. [Accounts5.lf](src/Accounts5.lf): A solution: [Chandy and Misra](https://ieeexplore.ieee.org/abstract/document/1702653) without null messages. This is implemented using `STA == forever` in the `AccountManager` reactors. Updates in the display are delayed arbitrarily until there is activity in the other node.
 5. [Accounts6.lf](src/Accounts6.lf): Adds null messages one second apart. **Note that this does not use C&M for the input to the Server. See Discussion below.**
 5. [Accounts7.lf](src/Accounts7.lf): Another solution: [PTIDES](https://ieeexplore.ieee.org/abstract/document/4155328) / [Spanner](https://www.doi.org/10.1145/2491245). This uses an STA offsets of 30 ms in the `AccountManager` reactors.  This will be consistent as long as apparent latency does not exceed 30 ms. **What happens if latencies exceed 30 ms?** The [CAL theorem](https://dl.acm.org/doi/10.1145/3609119) tells us that inconsistencies are unavoidable. We've bounded unavailability to 30 ms. If network latencies get large enough (or the network partitions), then inconsistencies cannot be prevented. See also [IT](https://spj.science.org/doi/10.34133/icomputing.0013) and [arXiv](https://arxiv.org/abs/2109.07771) papers.
+6. [Accounts8.lf](src/Accounts8.lf): A hybrid solution that maintains both an available balance and a strongly consistent one (see below).
+7. [Accounts9.lf](src/Accounts9.lf): An alternative hybrid solution with a different business decision that accepts withdrawls only based a strongly consistent balance while deposits and balance inquiries remain available.
+8. [ImpossibleConsistency.lf](src/ImpossibleConsistency.lf): A pattern where strong consistency becomes impossible because processing offsets go to infinity (see the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119)). See details below.
+9. [PossibleConsistency.lf](src/PossibleConsistency.lf): A pattern where strong consistency becomes possible again under an assumed bound on unavailability (see the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119)). Specifically, if unavailability is less than the period, then a zero processing offset for the nodes will work.  Note that this strategy will not work for the previous example even if the minimum spacing of the physical action is greater than zero. See details below.
 
 ### Handling STP Violations in Ptides/Spanner
 
@@ -92,6 +96,29 @@ These assumptions together ensure that the web interfaces are _eventually_ consi
 For this to be correct and not undermine determinism, we must ensure that the reaction to `in` and the reaction to the physical action do not change the state of the reactor.
 This is indeed the case.
 But we can't separate the reactions into separate reactors (which would provide such assurance by construction) because the reactions need access to the same websocket interface to the browser.
+
+## Impossibility
+
+### Impossible Consistency
+
+[ImpossibleConsistency.lf](src/ImpossibleConsistency.lf) shows a pattern where strong consistency becomes impossible because processing offsets go to infinity (see the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119)). 
+In this pattern, there are no finite STA offsets that enable each Update reactor to advance its tag.
+A positive value that is the same for both federates won't work because it will delay the outputs by the same amount, so waiting that amount offers no information about the remote tag.
+Asymmetric values won't work either because the federate with the smaller STA will potentially prematurely advance its tag.
+This situation is described in the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119) paper, where the processing offsets go to infinity.
+
+Note that the centralized coordinator works fine for this case.
+Each federate periodically notifies the RTI of the advancement of its _physical_ time without advancing its _logical_ time (something that cannot be accomplished with null messages sent based on a timer).
+
+### Possible Consistency
+
+In [PossibleConsistency.lf](src/PossibleConsistency.lf), strong consistency becomes possible again under an assumed bound on unavailability (see the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119)). Specifically, if unavailability is less than the period, then a zero processing offset for the nodes will work. Specifically, an STA offset of zero enables each Update reactor to advance its tag under the assumption that the period is sufficiently large that when physical time reaches a timer time, the remote input with the _previous_ timer time will have been received.
+This situation is described in the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119) paper.
+
+Note that this strategy will not work for the previous example even if the minimum spacing of the physical action is greater than zero. 
+
+Note also that the centralized coordinator does not require this assumption.
+
 
 ## Appendix
 
