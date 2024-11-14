@@ -107,6 +107,8 @@ A positive value that is the same for both federates won't work because it will 
 Asymmetric values won't work either because the federate with the smaller STA will potentially prematurely advance its tag.
 This situation is described in the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119) paper, where the processing offsets go to infinity.
 
+Note that the problem does not go away with `after` delays on the connections if the latency can be larger than the delays.
+
 Note that the centralized coordinator works fine for this case.
 Each federate periodically notifies the RTI of the advancement of its _physical_ time without advancing its _logical_ time (something that cannot be accomplished with null messages sent based on a timer).
 This suggests a simple extension to the decentralized coordination mechanism to send null messages when outputs are known to be absent up to some time even without advancing time.
