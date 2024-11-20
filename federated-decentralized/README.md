@@ -109,9 +109,8 @@ This situation is described in the [CAL theorem](https://dl.acm.org/doi/10.1145/
 
 Note that the problem does not go away with `after` delays on the connections if the latency can be larger than the delays.
 
-Note that the centralized coordinator works fine for this case.
-Each federate periodically notifies the RTI of the advancement of its _physical_ time without advancing its _logical_ time (something that cannot be accomplished with null messages sent based on a timer).
-This suggests a simple extension to the decentralized coordination mechanism to send null messages when outputs are known to be absent up to some time even without advancing time.
+What we need is for the federates to notify each other of the advancement of their _physical_ time without advancing their _logical_ time (something that cannot be accomplished with null messages sent based on a timer nor dummy events, as done with the centralized coordinator).
+This suggests a simple extension to send null messages when outputs are known to be absent up to some time without advancing time.
 
 ### Possible Consistency
 
