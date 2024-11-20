@@ -24,9 +24,9 @@ This demo explores one of the most sophisticated and experimental parts of [Ling
 
 ### Handling STP Violations in Ptides/Spanner
 
-The solution above ignores STP violations, which means that inputs to the `AccountManager` that are out of order will be handled the same way as other inputs and a warning will be issued.  This is probably not good enough for this application. At a minimum, we need eventual consistency, and the consistent value needs to account for all deposits and withdrawls that occur, even if they result in negative balances.
+The Ptides/Spanner solution in [Accounts7.lf](src/Accounts7.lf) ignores STP violations, which means that inputs to the `AccountManager` that are out of order will be handled the same way as other inputs and a warning will be issued.  This is probably not good enough for this application. At a minimum, we need eventual consistency, and the consistent value needs to account for all deposits and withdrawls that occur, even if they result in negative balances.
 
-Shulu Li has proved (unpublished) that eventual consistency occurs if _and only if_ the merge operation is commutative, associative, and idemptotent.
+Eventual consistency occurs if the merge operation is commutative, associative, and idemptotent.
 Idempotency is guarateed by the framework in this case because messages are delivered exactly once.
 What are the options to make the operation commutative?
 
@@ -36,7 +36,7 @@ But this has limited utility for cyber-physical systems. In this case, we can't 
 
 #### Hybrid Solutions
 
-In this application, eventual inconsistencies can occur when:
+In [Accounts7.lf](src/Accounts7.lf), eventual inconsistencies can occur when:
 
 * An AccountManager rejects a withdrawl because a remote deposit took longer than the STA of the AccountManager (30 ms) to arrive. The remote system may record the withdrawl as having succeeded, but the local manager has actually rejected the withdrawl and imposed an overdraft protection.
 * An AccountManager dispenses cash because a remote withdrawl took longer than the STA of the AccountManager (30 ms) to arrive. In this case, two withdrawls succeed, but the local manager may record the remote withdrawl failing, and the remote manager may record the local withdrawl failing.
@@ -101,7 +101,7 @@ But we can't separate the reactions into separate reactors (which would provide 
 
 ### Impossible Consistency
 
-[ImpossibleConsistency.lf](src/ImpossibleConsistency.lf) shows a pattern where strong consistency becomes impossible because processing offsets go to infinity (see the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119)). 
+[ImpossibleConsistency.lf](src/ImpossibleConsistency.lf) shows a pattern where strong consistency becomes impossible with the current decentralized coordinator. 
 In this pattern, there are no finite STA offsets that enable each Update reactor to advance its tag.
 A positive value that is the same for both federates won't work because it will delay the outputs by the same amount, so waiting that amount offers no information about the remote tag.
 Asymmetric values won't work either because the federate with the smaller STA will potentially prematurely advance its tag.
@@ -116,11 +116,8 @@ This suggests a simple extension to the decentralized coordination mechanism to 
 ### Possible Consistency
 
 In [PossibleConsistency.lf](src/PossibleConsistency.lf), strong consistency becomes possible again under an assumed bound on unavailability (see the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119)). Specifically, if unavailability is less than the period, then a zero processing offset for the nodes will work. Specifically, an STA offset of zero enables each Update reactor to advance its tag under the assumption that the period is sufficiently large that when physical time reaches a timer time, the remote input with the _previous_ timer time will have been received.
+An STAA of `forever` can be used on the input if we assume that each instance of Update will always send an output in reaction 1. Otherwise, we need a finite STAA and will need to handle possible STP violations.
 This situation is described in the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119) paper.
-
-Note that this strategy will not work for the previous example even if the minimum spacing of the physical action is greater than zero. 
-
-Note also that the centralized coordinator does not require this assumption.
 
 
 ## Appendix

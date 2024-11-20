@@ -18,9 +18,14 @@ reactor Update {
   state balance: int = 0
   timer p(0, 100 ms)
   reaction(p) -> out {=
+    lf_set(out, self->balance++);
   =}
   reaction(remote) {=
     self->balance += remote->value;
+    lf_print("Balance at time " PRINTF_TIME " is %d", lf_time_logical_elapsed(), self->balance);
+  =} STAA(forever) {=
+    // Unexpected.
+    lf_print_warning("Unexpected STP violation");
   =}
 }
 federated reactor {
