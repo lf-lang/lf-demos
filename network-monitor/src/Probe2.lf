@@ -1,6 +1,14 @@
+/**
+ * This version puts a Node and a web socket server on lf-mac.eecs.berkeley.edu, and runs the other
+ * Node and server on the local machine.  It is necessary to have connect with a VPN with a full tunnel
+ * to Berkeley to run this because otherwise the nodes cannot connect to the local machine. This is only
+ * necessary because of decentralized coordination. With centralized coodination, the nodes connect only
+ * to the RTI.
+ */
 target C {
   coordination: decentralized,
   logging: log,
+  timeout: 60 s,
   keepalive: true
 }
 
@@ -20,6 +28,7 @@ reactor Node (period: time = 1 s, STA: time = 0) {
     interval_t lag = lf_time_physical() - lf_time_logical();
     char* result;
     asprintf(&result, "{lag: " PRINTF_TIME "}", lag);
+    lf_print("************** Lag: " PRINTF_TIME, lag);
     return result;
   =}
 
