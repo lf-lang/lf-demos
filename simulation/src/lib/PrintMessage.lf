@@ -1,0 +1,12 @@
+ target C
+reactor PrintMessage {
+  input message: char*
+
+  reaction(message) {=
+    tag_t tag = lf_tag();
+    lf_print("PrintMessage: At (elapsed) logical time " PRINTF_TIME ", subscriber receives: %s",
+      tag.time - lf_time_start(),
+      message->value
+    );
+  =}
+}
