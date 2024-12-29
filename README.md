@@ -4,3 +4,4 @@ This repo contains artifacts such as scripts and sample programs used in demonst
 ## Demos
 
 * [federated-decentralized](federated-decentralized/README.md)
+* [simulation](simulation/README.md)
