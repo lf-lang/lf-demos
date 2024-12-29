@@ -4,8 +4,8 @@ reactor PrintMessage {
 
   reaction(message) {=
     tag_t tag = lf_tag();
-    lf_print("PrintMessage: At (elapsed) logical time " PRINTF_TIME ", subscriber receives: %s",
-      tag.time - lf_time_start(),
+    lf_print("PrintMessage: At (elapsed) tag " PRINTF_TAG ", subscriber receives:\n        %s",
+      tag.time - lf_time_start(), tag.microstep,
       message->value
     );
   =}

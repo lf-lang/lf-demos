@@ -1,14 +1,16 @@
 /**
  * This program launches an instance of `FreeRunningSimulator` and then subcribes to a topic that is
- * published by that simulator and prints the received messages to the console. It runs as fast as possible,
- * but locks its notion of logical time to the timestamp provided by the simulator.
+ * published by that simulator and prints the received messages to the console. It runs as fast as
+ * possible, but locks its notion of logical time to the timestamp provided by the simulator.
  *
  * See ../README.md for prerequisites and further information.
  *
- * @author Ravi Akella
  * @author Edward A. Lee
+ *
+ * @param broker The MQTT broker address.
+ * @param topic The topic to subscribe to.
  */
- target C {
+target C {
   fast: true,
   keepalive: true
 }
@@ -38,6 +40,7 @@ main reactor(broker: string = "tcp://localhost:1883", topic: string = "simulator
         getenv("DYLD_LIBRARY_PATH"),
         LF_PACKAGE_DIRECTORY);
     system(command);
+    lf_print("Launched simulator: %s", command);
     free(command);
   =}
 }

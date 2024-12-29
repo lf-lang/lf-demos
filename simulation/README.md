@@ -8,7 +8,7 @@ There are (at least) four patterns that you could use.  Which to pick depends on
 
 1. **Asynchronous interaction**.  The simulator runs as fast as it does and sends data to LF when it does, and receives data from LF when LF sends it.  The LF program runs in real time (fast == false) and schedules physical actions whenever it receives data from the simulator.
 
-2. **LF polls simulator**. The simulator runs as fast as it does and responds to queries for data from LF (either for sensor data or commands) whenever LF makes those queries.  The LF program runs in real time (fast == false) and uses timers to drive polling of the sensors and sending actuator commands to the simulator. Instead of timers, the LF program could also poll the simulator as fast as it chooses, even using a physical connection or action.
+2. **LF polls simulator**. The simulator runs as fast as it does and responds to queries for data from LF (either for sensor data or commands) whenever LF makes those queries.  The LF program runs in real time (fast == false) and uses timers to drive polling of the sensors and sending actuator commands to the simulator.
 
 3. **Simulator locked to LF**.  LF runs in real time or fast and uses a timer to periodically issue "step" commands to the simulator, asking it to step its simulation by the specified amount of time. It issues actuator commands and polls for sensor data in between these step operations.
 
@@ -66,9 +66,10 @@ Ideally, we would have a methodology where the same LF program is run on all the
 
 In the following examples, at startup, each program launches an external program that stands in as a simulator that periodically sends messages via an MQTT publish-and-subcribe channel. The external program is implemented as another LF program, [FreeRunningSimulator](src/FreeRunningSimulator.lf). The simulator runs at its own speed (which happens to be real time).
 
-- **[Asynchronous](src/Asychronous.lf)**: This example implements patter 1 above. The timestamp of the incoming message is ignored and the message is assigned a timestamp based on the physical time at which the message is received.
-- **FIXME**: Implement 2 and 3.
-- **[LockToSimulator](src/LockToSimulator.lf)**: This example implements pattern 4 above.  The LockToSimulator program runs in fast mode, as required by pattern 4 above.
+- **[Asynchronous](src/Asychronous.lf)**: This example implements pattern 1 above. The timestamp of the incoming message is ignored and the message is assigned a timestamp based on the physical time at which the message is received. Launches [FreeRunningSimulator](src/FreeRunningSimulator.lf).
+- **[PollSimulator](src/PollSimulator.lf)**: This example implements pattern 2 above. This launches [PolledSimulator](src/PolledSimulator.lf) after a 2 second delay (mosquitto doesn't seem to like simultaneous connection requests). It polls the simulator periodically, but each runs at its own rate.
+- **FIXME**: Implement 3.
+- **[LockToSimulator](src/LockToSimulator.lf)**: This example implements pattern 4 above.  The LockToSimulator program runs in fast mode, as required by pattern 4, so its timing is determined by the [FreeRunningSimulator](src/FreeRunningSimulator.lf) program, which it launches at startup.
 
 
 
