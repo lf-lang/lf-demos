@@ -68,7 +68,7 @@ In the following examples, at startup, each program launches an external program
 
 - **[Asynchronous](src/Asychronous.lf)**: This example implements pattern 1 above. The timestamp of the incoming message is ignored and the message is assigned a timestamp based on the physical time at which the message is received. Launches [FreeRunningSimulator](src/FreeRunningSimulator.lf).
 - **[PollSimulator](src/PollSimulator.lf)**: This example implements pattern 2 above. This launches [PolledSimulator](src/PolledSimulator.lf) after a 2 second delay (mosquitto doesn't seem to like simultaneous connection requests). It polls the simulator periodically, but each runs at its own rate.
-- **FIXME**: Implement 3.
+- **[StepSimulator](src/StepSimulator.lf)**: This example implements pattern 3 above. This launches [SteppedSimulator](src/SteppedSimulator.lf) after a 1 second delay (mosquitto doesn't seem to like simultaneous connection requests). At 2s, it starts stepping the simulator periodically. A bit after 15s, it sends a stop message to the simulator.
 - **[LockToSimulator](src/LockToSimulator.lf)**: This example implements pattern 4 above.  The LockToSimulator program runs in fast mode, as required by pattern 4, so its timing is determined by the [FreeRunningSimulator](src/FreeRunningSimulator.lf) program, which it launches at startup.
 
 
