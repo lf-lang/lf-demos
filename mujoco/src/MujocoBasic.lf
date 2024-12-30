@@ -31,15 +31,20 @@ preamble {=
 
   #include <GLFW/glfw3.h>
   #include <mujoco/mujoco.h>
+
+  typedef struct {
+    mjModel* m;           // MuJoCo model
+    mjData* d;            // MuJoCo data
+  } mujoco_instance_t;
 =}
 
-main reactor(
+reactor MuJoCo(
   model_file: string = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "models" LF_FILE_SEPARATOR "hello.xml" =}
 ) {
 
   preamble {=
     // MuJoCo data structures
-    mjModel* m = NULL;                  // MuJoCo model
+    mjModel* m  = NULL;                 // MuJoCo model
     mjData* d = NULL;                   // MuJoCo data
     mjvCamera cam;                      // abstract camera
     mjvOption opt;                      // visualization options
@@ -118,9 +123,7 @@ main reactor(
   reaction(startup) {=
 
     // load and compile model
-    m = mj_loadModel(self->model_file, 0);
-
-    char error[1000] = "Could not load binary model";
+    char error[1000] = "Could not load model";
     m = mj_loadXML(self->model_file, 0, error, 1000);
     if (!m) {
       mju_error("Load model error: %s", error);
@@ -195,4 +198,8 @@ main reactor(
   #endif
 
   =}
+}
+
+main reactor {
+  m = new MuJoCo()
 }
