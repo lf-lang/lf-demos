@@ -6,6 +6,7 @@
  * @author Edward A. Lee
  */
 target C {
+  keepalive: true, // Because of physical action.
   cmake-include: "include/mujoco.cmake"
 }
 
@@ -46,7 +47,17 @@ preamble {=
     bool button_right;
     double lastx;
     double lasty;
+
+    // Actions to asynchronously produce outputs.
+    void* keypress;
   } mujoco_instance_t;
+
+  typedef struct {
+    int key;
+    int scancode;
+    int act;
+    int mods;
+  } keypress_t;
 =}
 
 /**
@@ -68,12 +79,12 @@ reactor MuJoCo(
     // keyboard callback
     void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods) {
       mujoco_instance_t* c = (mujoco_instance_t*)glfwGetWindowUserPointer(window); // Context.
-
-      // backspace: reset simulation
-      if (act==GLFW_PRESS && key==GLFW_KEY_BACKSPACE) {
-        mj_resetData(c->m, c->d);
-        mj_forward(c->m, c->d);
-      }
+      keypress_t keypress;
+      keypress.key = key;
+      keypress.scancode = scancode;
+      keypress.act = act;
+      keypress.mods = mods;
+      lf_schedule_copy(c->keypress, 0, &keypress, 1);
     }
 
     // mouse button callback
@@ -140,9 +151,14 @@ reactor MuJoCo(
   state mujoco_time: mjtNum = 0
   state lf_time: time = 0
 
+  input restart: bool
   input advance: bool
 
-  reaction(startup) {=
+  output key: keypress_t
+
+  physical action keypress: keypress_t
+
+  reaction(startup) -> keypress {=
     mjModel* m  = NULL;                 // MuJoCo model
     mjData* d = NULL;                   // MuJoCo data
 
@@ -174,6 +190,7 @@ reactor MuJoCo(
     self->context.button_right = false;
     self->context.lastx = 0;
     self->context.lasty = 0;
+    self->context.keypress = keypress;
     glfwSetWindowUserPointer(self->window, &self->context);
 
     // initialize visualization data structures
@@ -198,6 +215,16 @@ reactor MuJoCo(
     // get framebuffer viewport
     mjrRect viewport = {0, 0, 0, 0};
     glfwGetFramebufferSize(self->window, &viewport.width, &viewport.height);
+  =}
+
+  reaction(keypress) -> key {=
+    lf_set(key, keypress->value);
+  =}
+
+  reaction(restart) {=
+    mj_resetData(self->context.m, self->context.d);
+    self->mujoco_time = self->context.d->time;
+    self->lf_time = lf_time_logical();
   =}
 
   reaction(advance) {=
@@ -243,14 +270,21 @@ reactor MuJoCo(
   #if defined(__APPLE__) || defined(_WIN32)
     glfwTerminate();
   #endif
-
   =}
 }
 
 main reactor(period: time = 16666667 ns) {
   timer t(0, period)
   m = new MuJoCo()
+
   reaction(t) -> m.advance {=
     lf_set(m.advance, true);
+  =}
+
+  reaction(m.key) -> m.restart {=
+    // If backspace: reset simulation
+    if (m.key->value.act==GLFW_PRESS && m.key->value.key==GLFW_KEY_BACKSPACE) {
+      lf_set(m.restart, true);
+    }
   =}
 }
