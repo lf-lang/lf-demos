@@ -277,14 +277,24 @@ main reactor(period: time = 16666667 ns) {
   timer t(0, period)
   m = new MuJoCo()
 
+  reaction(startup) {=
+    lf_print("*** Backspace to reset.");
+    lf_print("*** Type q to quit.");
+  =}
+
   reaction(t) -> m.advance {=
     lf_set(m.advance, true);
   =}
 
   reaction(m.key) -> m.restart {=
     // If backspace: reset simulation
-    if (m.key->value.act==GLFW_PRESS && m.key->value.key==GLFW_KEY_BACKSPACE) {
-      lf_set(m.restart, true);
+    // If q or Q: quit
+    if (m.key->value.act==GLFW_PRESS) {
+      if (m.key->value.key==GLFW_KEY_BACKSPACE) {
+        lf_set(m.restart, true);
+      } else if (m.key->value.key==GLFW_KEY_Q) {
+        lf_request_stop();
+      }
     }
   =}
 }
