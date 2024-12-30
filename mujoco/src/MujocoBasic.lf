@@ -35,27 +35,33 @@ preamble {=
   typedef struct {
     mjModel* m;           // MuJoCo model
     mjData* d;            // MuJoCo data
+    mjvCamera cam;        // Camera
+    mjvOption opt;        // Visualization options
+    mjvScene scn;         // Scene
+    mjrContext con;       // GPU context
+
+    // State variables keeping track of mouse state:
+    bool button_left;
+    bool button_middle;
+    bool button_right;
+    double lastx;
+    double lasty;
   } mujoco_instance_t;
 =}
 
+/**
+ * @brief MuJoCo simulation with visualization.
+ *
+ * This reactor handles some basic manipulations of the view:
+ * - Mouse scroll: Zoom in and out.
+ * - Left mouse press and move: Rotate the view.
+ * - Right mouse press and move: Shift the view up and down. Hold the shift key for in and out.
+ */
 reactor MuJoCo(
   model_file: string = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "models" LF_FILE_SEPARATOR "hello.xml" =}
 ) {
 
   preamble {=
-    // MuJoCo data structures
-    mjvCamera cam;                      // abstract camera
-    mjvOption opt;                      // visualization options
-    mjvScene scn;                       // abstract scene
-    mjrContext con;                     // custom GPU context
-
-    // mouse interaction
-    bool button_left = false;
-    bool button_middle = false;
-    bool button_right =  false;
-    double lastx = 0;
-    double lasty = 0;
-
     // keyboard callback
     void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods) {
       mujoco_instance_t* c = (mujoco_instance_t*)glfwGetWindowUserPointer(window); // Context.
@@ -69,13 +75,15 @@ reactor MuJoCo(
 
     // mouse button callback
     void mouse_button(GLFWwindow* window, int button, int act, int mods) {
+      mujoco_instance_t* c = (mujoco_instance_t*)glfwGetWindowUserPointer(window); // Context.
+
       // update button state
-      button_left = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)==GLFW_PRESS);
-      button_middle = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE)==GLFW_PRESS);
-      button_right = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS);
+      c->button_left = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT)==GLFW_PRESS);
+      c->button_middle = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE)==GLFW_PRESS);
+      c->button_right = (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT)==GLFW_PRESS);
 
       // update mouse position
-      glfwGetCursorPos(window, &lastx, &lasty);
+      glfwGetCursorPos(window, &c->lastx, &c->lasty);
     }
 
     // mouse move callback
@@ -83,15 +91,15 @@ reactor MuJoCo(
       mujoco_instance_t* c = (mujoco_instance_t*)glfwGetWindowUserPointer(window); // Context.
 
       // no buttons down: nothing to do
-      if (!button_left && !button_middle && !button_right) {
+      if (!c->button_left && !c->button_middle && !c->button_right) {
         return;
       }
 
       // compute mouse displacement, save
-      double dx = xpos - lastx;
-      double dy = ypos - lasty;
-      lastx = xpos;
-      lasty = ypos;
+      double dx = xpos - c->lastx;
+      double dy = ypos - c->lasty;
+      c->lastx = xpos;
+      c->lasty = ypos;
 
       // get current window size
       int width, height;
@@ -103,16 +111,16 @@ reactor MuJoCo(
 
       // determine action based on mouse button
       mjtMouse action;
-      if (button_right) {
+      if (c->button_right) {
         action = mod_shift ? mjMOUSE_MOVE_H : mjMOUSE_MOVE_V;
-      } else if (button_left) {
+      } else if (c->button_left) {
         action = mod_shift ? mjMOUSE_ROTATE_H : mjMOUSE_ROTATE_V;
       } else {
         action = mjMOUSE_ZOOM;
       }
 
       // move camera
-      mjv_moveCamera(c->m, action, dx/height, dy/height, &scn, &cam);
+      mjv_moveCamera(c->m, action, dx/height, dy/height, &c->scn, &c->cam);
     }
 
     // scroll callback
@@ -120,10 +128,11 @@ reactor MuJoCo(
       mujoco_instance_t* c = (mujoco_instance_t*)glfwGetWindowUserPointer(window); // Context.
 
       // emulate vertical mouse motion = 5% of window height
-      mjv_moveCamera(c->m, mjMOUSE_ZOOM, 0, -0.05*yoffset, &scn, &cam);
+      mjv_moveCamera(c->m, mjMOUSE_ZOOM, 0, -0.05*yoffset, &c->scn, &c->cam);
     }
   =}
 
+  state window: GLFWwindow* = {= NULL =}
   state context: mujoco_instance_t = {= {.m = NULL, .d = NULL} =}
 
   reaction(startup) {=
@@ -146,33 +155,38 @@ reactor MuJoCo(
     }
 
     // create window, make OpenGL context current, request v-sync
-    GLFWwindow* window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
-    glfwMakeContextCurrent(window);
+    self->window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
+    glfwMakeContextCurrent(self->window);
     glfwSwapInterval(1);
 
     // Set up the context struct.
     self->context.m = m;
     self->context.d = d;
-    glfwSetWindowUserPointer(window, &self->context);
+    self->context.button_left = false;
+    self->context.button_middle = false;
+    self->context.button_right = false;
+    self->context.lastx = 0;
+    self->context.lasty = 0;
+    glfwSetWindowUserPointer(self->window, &self->context);
 
     // initialize visualization data structures
-    mjv_defaultCamera(&cam);
-    mjv_defaultOption(&opt);
-    mjv_defaultScene(&scn);
-    mjr_defaultContext(&con);
+    mjv_defaultCamera(&self->context.cam);
+    mjv_defaultOption(&self->context.opt);
+    mjv_defaultScene(&self->context.scn);
+    mjr_defaultContext(&self->context.con);
 
     // create scene and context
-    mjv_makeScene(m, &scn, 2000);
-    mjr_makeContext(m, &con, mjFONTSCALE_150);
+    mjv_makeScene(m, &self->context.scn, 2000);
+    mjr_makeContext(m, &self->context.con, mjFONTSCALE_150);
 
     // install GLFW mouse and keyboard callbacks
-    glfwSetKeyCallback(window, keyboard);
-    glfwSetCursorPosCallback(window, mouse_move);
-    glfwSetMouseButtonCallback(window, mouse_button);
-    glfwSetScrollCallback(window, scroll);
+    glfwSetKeyCallback(self->window, keyboard);
+    glfwSetCursorPosCallback(self->window, mouse_move);
+    glfwSetMouseButtonCallback(self->window, mouse_button);
+    glfwSetScrollCallback(self->window, scroll);
 
     // run main loop, target real-time simulation and 60 fps rendering
-    while (!glfwWindowShouldClose(window)) {
+    while (!glfwWindowShouldClose(self->window)) {
       // advance interactive simulation for 1/60 sec
       //  Assuming MuJoCo can simulate faster than real-time, which it usually can,
       //  this loop will finish on time for the next frame to be rendered at 60 fps.
@@ -184,22 +198,22 @@ reactor MuJoCo(
 
       // get framebuffer viewport
       mjrRect viewport = {0, 0, 0, 0};
-      glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
+      glfwGetFramebufferSize(self->window, &viewport.width, &viewport.height);
 
       // update scene and render
-      mjv_updateScene(m, d, &opt, NULL, &cam, mjCAT_ALL, &scn);
-      mjr_render(viewport, &scn, &con);
+      mjv_updateScene(m, d, &self->context.opt, NULL, &self->context.cam, mjCAT_ALL, &self->context.scn);
+      mjr_render(viewport, &self->context.scn, &self->context.con);
 
       // swap OpenGL buffers (blocking call due to v-sync)
-      glfwSwapBuffers(window);
+      glfwSwapBuffers(self->window);
 
       // process pending GUI events, call GLFW callbacks
       glfwPollEvents();
     }
 
     //free visualization storage
-    mjv_freeScene(&scn);
-    mjr_freeContext(&con);
+    mjv_freeScene(&self->context.scn);
+    mjr_freeContext(&self->context.con);
 
     // free MuJoCo model and data
     mj_deleteData(d);
