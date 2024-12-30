@@ -44,8 +44,6 @@ reactor MuJoCo(
 
   preamble {=
     // MuJoCo data structures
-    mjModel* m  = NULL;                 // MuJoCo model
-    mjData* d = NULL;                   // MuJoCo data
     mjvCamera cam;                      // abstract camera
     mjvOption opt;                      // visualization options
     mjvScene scn;                       // abstract scene
@@ -60,10 +58,12 @@ reactor MuJoCo(
 
     // keyboard callback
     void keyboard(GLFWwindow* window, int key, int scancode, int act, int mods) {
+      mujoco_instance_t* c = (mujoco_instance_t*)glfwGetWindowUserPointer(window); // Context.
+
       // backspace: reset simulation
       if (act==GLFW_PRESS && key==GLFW_KEY_BACKSPACE) {
-        mj_resetData(m, d);
-        mj_forward(m, d);
+        mj_resetData(c->m, c->d);
+        mj_forward(c->m, c->d);
       }
     }
 
@@ -80,6 +80,8 @@ reactor MuJoCo(
 
     // mouse move callback
     void mouse_move(GLFWwindow* window, double xpos, double ypos) {
+      mujoco_instance_t* c = (mujoco_instance_t*)glfwGetWindowUserPointer(window); // Context.
+
       // no buttons down: nothing to do
       if (!button_left && !button_middle && !button_right) {
         return;
@@ -110,17 +112,23 @@ reactor MuJoCo(
       }
 
       // move camera
-      mjv_moveCamera(m, action, dx/height, dy/height, &scn, &cam);
+      mjv_moveCamera(c->m, action, dx/height, dy/height, &scn, &cam);
     }
 
     // scroll callback
     void scroll(GLFWwindow* window, double xoffset, double yoffset) {
+      mujoco_instance_t* c = (mujoco_instance_t*)glfwGetWindowUserPointer(window); // Context.
+
       // emulate vertical mouse motion = 5% of window height
-      mjv_moveCamera(m, mjMOUSE_ZOOM, 0, -0.05*yoffset, &scn, &cam);
+      mjv_moveCamera(c->m, mjMOUSE_ZOOM, 0, -0.05*yoffset, &scn, &cam);
     }
   =}
 
+  state context: mujoco_instance_t = {= {.m = NULL, .d = NULL} =}
+
   reaction(startup) {=
+    mjModel* m  = NULL;                 // MuJoCo model
+    mjData* d = NULL;                   // MuJoCo data
 
     // load and compile model
     char error[1000] = "Could not load model";
@@ -141,6 +149,11 @@ reactor MuJoCo(
     GLFWwindow* window = glfwCreateWindow(1200, 900, "Demo", NULL, NULL);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
+
+    // Set up the context struct.
+    self->context.m = m;
+    self->context.d = d;
+    glfwSetWindowUserPointer(window, &self->context);
 
     // initialize visualization data structures
     mjv_defaultCamera(&cam);
