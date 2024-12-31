@@ -1,0 +1,67 @@
+/**
+ * Basic car driving program for Mujoco.
+ *
+ * See [README.md](../README.md) for prerequisites and installation instructions.
+ *
+ * @author Edward A. Lee
+ */
+target C {
+  keepalive: true, // Because of physical action.
+}
+
+import MuJoCo from "MujocoBasic.lf"
+
+reactor Car extends MuJoCo {
+  input forward:double
+  input turn:double
+
+  reaction(forward) {=
+    int index = mj_name2id(self->context.m, mjOBJ_ACTUATOR, "forward");
+    self->context.d->ctrl[index] = forward->value;
+  =}
+
+  reaction(turn) {=
+    int index = mj_name2id(self->context.m, mjOBJ_ACTUATOR, "turn");
+    self->context.d->ctrl[index] = turn->value;
+  =}
+}
+
+main reactor(period: time = 33333333 ns, speed_sensitivity: double = 0.05, turn_sensitivity: double = 0.01) {
+  timer t(0, period)
+  state speed:double = 0;
+
+  m = new Car(model_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "models" LF_FILE_SEPARATOR "car.xml" =})
+
+  reaction(startup) {=
+    lf_print("*** Backspace to reset.");
+    lf_print("*** Type q to quit.");
+  =}
+
+  reaction(t) -> m.advance {=
+    lf_set(m.advance, true);
+  =}
+
+  reaction(m.key) -> m.restart, m.forward, m.turn {=
+    // If backspace: reset simulation
+    // If q or Q: quit
+    if (m.key->value.act==GLFW_PRESS) {
+      if (m.key->value.key==GLFW_KEY_BACKSPACE) {
+        lf_set(m.restart, true);
+      } else if (m.key->value.key==GLFW_KEY_Q) {
+        lf_request_stop();
+      } else if (m.key->value.key==GLFW_KEY_UP) {
+        self->speed += self->speed_sensitivity;
+        lf_set(m.forward, self->speed);
+      } else if (m.key->value.key==GLFW_KEY_DOWN) {
+        self->speed -= self->speed_sensitivity;
+        lf_set(m.forward, self->speed);
+      } else if (m.key->value.key==GLFW_KEY_RIGHT) {
+        self->speed -= self->turn_sensitivity;
+        lf_set(m.turn, self->speed);
+      } else if (m.key->value.key==GLFW_KEY_LEFT) {
+        self->speed += self->turn_sensitivity;
+        lf_set(m.turn, self->speed);
+      }
+    }
+  =}
+}
