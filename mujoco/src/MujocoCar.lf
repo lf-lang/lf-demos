@@ -15,14 +15,56 @@ reactor Car extends MuJoCo {
   input forward:double
   input turn:double
 
+  output right_force:double
+  output left_force:double
+
+  // Actuator indexes.
+  state forward_index: int = 0
+  state turn_index: int = 0
+  // Sensor addresses
+  state right_address: int = 0
+  state left_address: int = 0
+
+  reaction(startup) {=
+    // Get actuator indexes.
+    self->forward_index = mj_name2id(self->context.m, mjOBJ_ACTUATOR, "forward");
+    self->turn_index = mj_name2id(self->context.m, mjOBJ_ACTUATOR, "turn");
+
+    // Get sensor indexes.
+    int right_index = mj_name2id(self->context.m, mjOBJ_SENSOR, "right");
+    int left_index = mj_name2id(self->context.m, mjOBJ_SENSOR, "left");
+
+    // Check validity.
+    if (self->forward_index < 0 || self->turn_index < 0 || right_index < 0 || left_index < 0) {
+      lf_print_error("Mismatched model file. Missing sensors or actuators.");
+      lf_request_stop();
+    }
+
+    // Get addresses and dimensions.
+    self->right_address = self->context.m->sensor_adr[right_index];
+    int right_dim = self->context.m->sensor_dim[right_index];
+    self->left_address = self->context.m->sensor_adr[left_index];
+    int left_dim = self->context.m->sensor_dim[left_index];
+
+    // Check validity.
+    if (right_dim != 1 || left_dim != 1) {
+      lf_print_error("Mismatched model file. Expected sensors of dimension 1.");
+      lf_request_stop();
+    }
+  =}
+
   reaction(forward) {=
-    int index = mj_name2id(self->context.m, mjOBJ_ACTUATOR, "forward");
-    self->context.d->ctrl[index] = forward->value;
+    self->context.d->ctrl[self->forward_index] = forward->value;
   =}
 
   reaction(turn) {=
-    int index = mj_name2id(self->context.m, mjOBJ_ACTUATOR, "turn");
-    self->context.d->ctrl[index] = turn->value;
+    self->context.d->ctrl[self->turn_index] = turn->value;
+  =}
+
+  reaction(advance) -> right_force, left_force {=
+    // Output sensor data.
+    lf_set(right_force, self->context.d->sensordata[self->right_address]);
+    lf_set(left_force, self->context.d->sensordata[self->left_address]);
   =}
 }
 
@@ -34,7 +76,7 @@ main reactor(period: time = 33333333 ns, speed_sensitivity: double = 0.05, turn_
 
   reaction(startup) {=
     lf_print("*** Backspace to reset.");
-    lf_print("*** Type q to quit.");
+    lf_print("*** Type q to quit.\n");
   =}
 
   reaction(t) -> m.advance {=
@@ -63,5 +105,20 @@ main reactor(period: time = 33333333 ns, speed_sensitivity: double = 0.05, turn_
         lf_set(m.turn, self->speed);
       }
     }
+  =}
+
+  reaction(m.right_force, m.left_force) {=
+    if (m.left_force->is_present) {
+      printf("\r<--- %f", m.left_force->value);
+    }
+    if (m.right_force->is_present) {
+      printf("\t %f --->", m.right_force->value);
+    }
+    // Flush the output buffer to ensure the line updates immediately
+    fflush(stdout);
+  =}
+
+  reaction(shutdown) {=
+    lf_print("\nExiting.");
   =}
 }
