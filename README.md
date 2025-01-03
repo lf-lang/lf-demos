@@ -5,3 +5,4 @@ This repo contains artifacts such as scripts and sample programs used in demonst
 
 * [federated-decentralized](federated-decentralized/README.md)
 * [simulation](simulation/README.md)
+* [mujoco](mujoco/README.md)

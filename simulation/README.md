@@ -2,6 +2,13 @@
 
 A common situation is that Lingua Franca program needs to interact with an external simulation engine such as Mujoco, Carla, Modelica, or some other simulator. LF is a timed language, and so are those simulators, making it desirable to coordinate the advancement of time in the two programs.
 
+## Prerequisites
+
+This demo depends on the [mujoco-c library](https://github.com/lf-lang/mujoco-c), which you can
+install using [lingo](https://github.com/lf-lang/lingo) by running `lingo build` in this directory.
+
+In addition, to get these demos to compile, you will need to install openSSL, Paho, and Mosquitto, as explained in the [mujoco-c library README file](https://github.com/lf-lang/mujoco-c/README.md).
+
 ## Patterns
 
 There are (at least) four patterns that you could use.  Which to pick depends on the goals and the capabilities of the simulator.
