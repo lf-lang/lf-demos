@@ -1,0 +1,69 @@
+/**
+ * Basic car driving program for Mujoco.  This is the same as the MuJoCoCarDemo
+ * example in the mujoco-c library, which you need to install first using `lingo build`
+ * in this directory.
+ *
+ * See [README.md](../README.md) for prerequisites and installation instructions.
+ *
+ * @author Edward A. Lee
+ */
+target C {
+  keepalive: true, // Because of physical action in MuJoCoCar.
+}
+
+import MuJoCoCar from <mujoco-c/MuJoCoCar.lf>
+
+main reactor(period: time = 33333333 ns, speed_sensitivity: double = 0.05, turn_sensitivity: double = 0.01) {
+  timer t(0, period)
+  state speed:double = 0;
+
+  m = new MuJoCoCar()
+
+  reaction(startup) {=
+    lf_print("*** Backspace to reset.");
+    lf_print("*** Type q to quit.\n");
+  =}
+
+  reaction(t) -> m.advance {=
+    lf_set(m.advance, true);
+  =}
+
+  reaction(m.key) -> m.restart, m.forward, m.turn {=
+    // If backspace: reset simulation
+    // If q or Q: quit
+    if (m.key->value.act==GLFW_PRESS) {
+      if (m.key->value.key==GLFW_KEY_BACKSPACE) {
+        lf_set(m.restart, true);
+      } else if (m.key->value.key==GLFW_KEY_Q) {
+        lf_request_stop();
+      } else if (m.key->value.key==GLFW_KEY_UP) {
+        self->speed += self->speed_sensitivity;
+        lf_set(m.forward, self->speed);
+      } else if (m.key->value.key==GLFW_KEY_DOWN) {
+        self->speed -= self->speed_sensitivity;
+        lf_set(m.forward, self->speed);
+      } else if (m.key->value.key==GLFW_KEY_RIGHT) {
+        self->speed -= self->turn_sensitivity;
+        lf_set(m.turn, self->speed);
+      } else if (m.key->value.key==GLFW_KEY_LEFT) {
+        self->speed += self->turn_sensitivity;
+        lf_set(m.turn, self->speed);
+      }
+    }
+  =}
+
+  reaction(m.right_force, m.left_force) {=
+    if (m.left_force->is_present) {
+      printf("\r<--- %f", m.left_force->value);
+    }
+    if (m.right_force->is_present) {
+      printf("\t %f --->", m.right_force->value);
+    }
+    // Flush the output buffer to ensure the line updates immediately
+    fflush(stdout);
+  =}
+
+  reaction(shutdown) {=
+    lf_print("\nExiting.");
+  =}
+}
