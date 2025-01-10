@@ -51,8 +51,11 @@ reactor SimpleHttpServer(port: int = 8080) {
     const char *response_data;
     void *lock;
 
-    // This function will be called, asynchronously from the HTTP server daemon each time a HTTP request
-    // is sent.
+    // This is a callback which is called, asynchronously, from the HTTP server daemon each time a HTTP request
+    // is received from a client. As far as I understand, this function must handle the request and return 
+    // a status code to the daemon. Ideally, we would have this callback schedule an event on a physical action
+    // but I dont think that is possible with the current API. Thus we need to access reactor state directly
+    // from this callback and a mutex is needed.
     static enum MHD_Result answer_to_connection(void *cls, struct MHD_Connection *connection,
                                 const char *url, const char *method,
                                 const char *version, const char *upload_data,
