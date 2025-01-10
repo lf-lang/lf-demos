@@ -18,6 +18,15 @@ preamble {=
     char cmd[256]; // Shell command to execute
     instant_t timestamp; // The instant at which to execute the command
   } CommandMessage;
+
+  // Macro for generating a shell command to say something
+  #if defined(PLATFORM_Linux)
+    #define SAY_SOMETHING(x) "spd-say '" x "'"
+  #elif defined(PLATFORM_Darwin)
+    #define SAY_SOMETHING(x) "say '" x "'"
+  #else
+    #error "Unsupported platform"
+  #endif
 =}
 
 reactor NodeSync(bank_index:int = 0, width:int = 1) {
@@ -53,7 +62,7 @@ reactor NodeSync(bank_index:int = 0, width:int = 1) {
       cmd_timestamp = lf_time_physical() + max_latency + MSEC(1);
 
       for (int i = 0; i<self->width; i++) {
-        strcpy(cmd_out[i]->value.cmd, "spd-say 'Hello World!'");
+        strcpy(cmd_out[i]->value.cmd, SAY_SOMETHING("Hello Lingua Franca!"));
         cmd_out[i]->value.timestamp = cmd_timestamp;
         lf_set_present(cmd_out[i]);
       }
