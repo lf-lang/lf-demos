@@ -1,7 +1,11 @@
 /* A library reactor for sending and receiving latency measurement probes.
  * Latency requests are sent in response to a timer firing. When responses are
  * received they are buffered and handled later by another timer.
+ *
+ * The latency to itself is always 0. If a response is received after the
+ * `worst_case_latency` parameter, the latency is set to `FOREVER`.
 */
+
 target C {
   files: ["network_latency_probe.h"]
 }
@@ -13,14 +17,15 @@ preamble {=
 
 reactor NetworkLatencyProbe(
   bank_index:int = 0,
-  send_requests: bool = true, 
-  request_interval: time = 2 sec, 
-  worst_case_latency: time = 1 sec,
-  width: int=1, 
-  debug: bool=false
+  send_requests: bool = true, // Whether this reactor should send requests, or just respond to them.
+  request_interval: time = 2 sec,  // Time between sending requests.
+  worst_case_latency: time = 1 sec, // Maximum time to wait for a response. If a response is later the latency is assumed to be FOREVER.
+  width: int=1,  // Number of peers (including itself) to send requests to.
+  debug: bool=false // Enable debug printing
 ) {
   output [width] msg_out: LatencyMessage
   input [width] msg_in: LatencyMessage
+
   output [width] latencies: interval_t
 
   timer t_request(0, request_interval)
@@ -31,7 +36,6 @@ reactor NetworkLatencyProbe(
   state last_response: LatencyMessage[]
 
   reaction(startup) {=
-    
     if (self->request_interval <= self->worst_case_latency) {
       lf_print_error_and_exit("Request interval must be greater than worst case latency");
     }
@@ -44,6 +48,7 @@ reactor NetworkLatencyProbe(
     }
   =}
 
+  // Send out latency requests to all peers.
   reaction(t_request) -> msg_out {=
     if (!self->send_requests) {
       return;
@@ -102,6 +107,7 @@ reactor NetworkLatencyProbe(
     }
   =}
 
+  // Compute the latency to all peers and output it.
   reaction(t_output) -> latencies {=
     for (int i = 0; i < self->width; i++) {
       if (i == self->bank_index) {
