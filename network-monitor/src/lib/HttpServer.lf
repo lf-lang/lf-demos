@@ -12,33 +12,6 @@ preamble {=
   #include "http_server.h"
 =}
 
-reactor LatencyHttpServer(port: int = 8080, width: int=1) {
-  input [width] latencies : interval_t
-
-  server = new SimpleHttpServer(port=port)
-
-  reaction(latencies) -> server.response {=
-
-    char * output = server.response->value.msg;
-    size_t output_size = sizeof(server.response->value.msg);
-    size_t offset = 0;
-    offset += snprintf(output + offset, output_size - offset, "{ \"latencies\": [");
-    
-    for (size_t i = 0; i < latencies_width; ++i) {
-        // Append latency value in nanoseconds
-        offset += snprintf(output + offset, output_size - offset, "%ld", latencies[i]->value);
-        
-        // Add a comma if not the last element
-        if (i < self->width - 1) {
-            offset += snprintf(output + offset, output_size - offset, ", ");
-        }
-    }
-    
-    // Close the JSON array and object
-    snprintf(output + offset, output_size - offset, "] }");
-    lf_set_present(server.response);
-  =}
-}
 reactor SimpleHttpServer(port: int = 8080) {
   
   input response: HttpResponse
@@ -105,6 +78,33 @@ reactor SimpleHttpServer(port: int = 8080) {
   =}
 }
 
+reactor LatencyHttpServer(port: int = 8080, width: int=1) {
+  input [width] latencies : interval_t
+
+  server = new SimpleHttpServer(port=port)
+
+  reaction(latencies) -> server.response {=
+
+    char * output = server.response->value.msg;
+    size_t output_size = sizeof(server.response->value.msg);
+    size_t offset = 0;
+    offset += snprintf(output + offset, output_size - offset, "{ \"latencies\": [");
+    
+    for (size_t i = 0; i < latencies_width; ++i) {
+        // Append latency value in nanoseconds
+        offset += snprintf(output + offset, output_size - offset, PRINTF_TIME, latencies[i]->value);
+        
+        // Add a comma if not the last element
+        if (i < self->width - 1) {
+            offset += snprintf(output + offset, output_size - offset, ", ");
+        }
+    }
+    
+    // Close the JSON array and object
+    snprintf(output + offset, output_size - offset, "] }");
+    lf_set_present(server.response);
+  =}
+}
 
 main reactor {
   m = new SimpleHttpServer(port=8080)
