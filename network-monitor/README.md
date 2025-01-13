@@ -25,7 +25,7 @@ To inspect the latency measurements performed by federate 0, open [](src/lib/Htt
 
 ### [Probe5.lf](src/Probe5.lf)
 This examples builds on Probe4, and shows how we can leverage the latencies measurements
-within the very same LF program. Federate 0 sends out a shell command to all other federates togheter with a timestamp
+within the very same LF program. Federate 0 sends out a shell command to all other federates together with a timestamp
 for when to invoke it which is the maximum of all filtered latencies.
 
 To run
