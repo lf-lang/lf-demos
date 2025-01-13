@@ -1,4 +1,4 @@
-list(APPEND CMAKE_PREFIX_PATH /usr/local /opt/brew)
+list(APPEND CMAKE_PREFIX_PATH /usr/local /opt/homebrew)
 find_library(MICROHTTPD_LIB microhttpd REQUIRED)
 find_path(MICROHTTPD_INCLUDE_DIR microhttpd.h REQUIRED)
 
