@@ -20,7 +20,7 @@ reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_mes
       lf_set(received, 0);
     }
   =}
-  reaction(in1, in2) -> w.in {=
+  reaction(in1, in2) -> w.in_dynamic {=
     // Give preference to acknowledging the deposit quickly.
     int amount;
     if (in2->is_present) {
@@ -30,7 +30,7 @@ reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_mes
     }
     char* result;
     asprintf(&result, "%d", amount);
-    lf_set_array(w.in, result, strlen(result));
+    lf_set_array(w.in_dynamic, result, strlen(result));
   =} STAA(0) {=
     // Ignore STP violations.
     int amount;
@@ -41,7 +41,7 @@ reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_mes
     }
     char* result;
     asprintf(&result, "%d", amount);
-    lf_set_array(w.in, result, strlen(result));
+    lf_set_array(w.in_dynamic, result, strlen(result));
   =}
 }
 
@@ -84,12 +84,12 @@ federated reactor {
   w1 = new Server(
     hostport = 8080,
     null_message_period = 5 s,
-    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =}
+    initial_file = "Bank1.html"
   )
   w2 = new Server(
     hostport = 8081,
     null_message_period = 5 s,
-    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank2.html" =}
+    initial_file = "Bank2.html"
   )
   a1 = new Account(STA = forever)
   a2 = new Account(STA = forever)
