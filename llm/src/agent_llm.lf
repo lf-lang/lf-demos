@@ -1,0 +1,44 @@
+target Python{
+    files: llm_textgeneration.py
+};
+
+preamble{=
+    from llm import agent1, agent2
+    
+=}
+
+reactor llm_a{
+
+    output user_in
+    reaction (startup)-> user_in{=
+        txt = input("Hey there!")
+        user_in.set(txt)
+    =}
+}
+
+reactor llm_b{
+    input llm_a_in
+    output llm_b_out
+    reaction (llm_a_in)-> llm_b_out{=
+        llm_b_out.set(llm_a_in.value)
+    =}
+}
+
+main reactor{
+    state response 
+    user_response = new llm_a()
+    llm_response = new llm_b()
+    // call llm a to respond to user
+    reaction (user_response.user_in)->llm_response.llm_a_in{=
+        
+        response = agent1(user_response.user_in.value)
+        llm_response.llm_a_in.set(response)
+    =}
+    
+    //llm b to respond to what llm a generated 
+    reaction (llm_response.llm_b_out){=
+        # llm_response.llm_a_in = response
+        agent2(llm_response.llm_b_out.value)
+    =}
+        
+}
