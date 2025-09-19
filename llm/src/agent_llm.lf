@@ -7,7 +7,7 @@ preamble{=
     
 =}
 
-reactor llm_a{
+reactor LLM_a{
 
     output user_in
     reaction (startup)-> user_in{=
@@ -16,7 +16,7 @@ reactor llm_a{
     =}
 }
 
-reactor llm_b{
+reactor LLM_b{
     input llm_a_in
     output llm_b_out
     reaction (llm_a_in)-> llm_b_out{=
@@ -26,8 +26,8 @@ reactor llm_b{
 
 main reactor{
     state response 
-    user_response = new llm_a()
-    llm_response = new llm_b()
+    user_response = new LLM_a()
+    llm_response = new LLM_b()
     // call llm a to respond to user
     reaction (user_response.user_in)->llm_response.llm_a_in{=
         
