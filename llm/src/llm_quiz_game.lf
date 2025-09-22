@@ -4,7 +4,7 @@ target Python { keepalive: true, files: ["llm.py"] }
 preamble {=
   import threading
   import time 
-  from llm import agent1, agent2  # your Python functions
+  from llm import agent1, agent2  
 
   def keyboard_prompt(reactor, action):
       while True:
