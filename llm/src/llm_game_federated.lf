@@ -1,0 +1,40 @@
+### llm.py file needs to be in the same directory
+target Python { keepalive: true, files: ["llm_a.py", "llm_b.py"] }
+// import KeyboardInput from "llm_base_class_federate.lf"
+import LlmA from "llm_base_class_federate.lf"
+import LlmB from "llm_base_class_federate.lf"
+import Judge from "llm_base_class_federate.lf"
+
+preamble {=
+  import threading
+  import time 
+  from llm_a import agent1
+  from llm_b import agent2
+=}
+
+
+federated reactor llm_game_federated at 10.218.100.95 {
+  // llma_response_f = new LlmA() 
+  // llmb_response_f = new LlmB() 
+  // keyboard_f = new KeyboardInput() 
+  // j_f = new Judge() 
+
+  // keyboard_f.prompt -> j_f.query
+  // j_f.ask -> llma_response_f.user_in
+  // j_f.ask -> llmb_response_f.user_in
+  // llma_response_f.answer -> j_f.llma
+  // llmb_response_f.answer -> j_f.llmb         
+  j    = new Judge()
+  llma = new LlmA()
+  llmb = new LlmB()
+
+  j.ask -> llma.user_in
+  j.ask -> llmb.user_in
+  llma.answer -> j.llma
+  llmb.answer -> j.llmb
+
+  llma.ready_out -> j.ready_a
+  llmb.ready_out -> j.ready_b
+
+}
+
