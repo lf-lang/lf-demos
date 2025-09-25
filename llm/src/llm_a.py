@@ -1,4 +1,4 @@
-# llm_a.py — Agent 1 (7B)
+# llm_a.py
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
@@ -6,10 +6,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 # <<< put your token here >>>
 hf_auth = "add token here "
 
-# Model to be chosen to act as an agent
+# Model 
 model_id = "meta-llama/Llama-2-7b-chat-hf"
 
-# Require GPU (you said it must work only on GPU)
+# Require GPU 
 has_cuda = torch.cuda.is_available()
 if not has_cuda:
     raise RuntimeError("CUDA GPU required for this configuration.")
@@ -19,7 +19,7 @@ dtype = torch.bfloat16 if has_cuda else torch.float32
 bnb_config = None
 if has_cuda:
     try:
-        import bitsandbytes as bnb  # noqa: F401
+        import bitsandbytes as bnb 
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
@@ -63,7 +63,7 @@ def postprocess(text: str) -> str:
             break
     return t.strip().strip(":").strip()
 
-# Agent 1 entrypoint
+# Agent 1 
 def agent1(q: str) -> str:
     prompt = f"You are a concise Q&A assistant.\n\n{q}\n"
     inputs = tokenizer(prompt, return_tensors="pt")
