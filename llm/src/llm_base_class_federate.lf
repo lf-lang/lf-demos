@@ -1,60 +1,5 @@
 target Python 
 
-### Reactor for handling user keyboard input
-
-// reactor KeyboardInput {
-//   state th
-//   state terminate = False
-//   state eof = False
-//   state buffer = ""
-
-//   physical action line
-//   output prompt
-//   output quit
-
-//   reaction(startup) -> line {=
-//     import sys
-//     import threading
-//     import time
-
-//     def reader():
-//       while not self.terminate:
-//         s = input("Enter the quiz question\n")
-//         if s == "":
-//           self.eof = True
-//           try: line.schedule(0)
-//           except Exception as e: print("[keyboard] schedule EOF failed:", e, flush=True)
-//           break
-//         elif s.lower().strip() == "quit":
-//           self.eof = True
-//           try: line.schedule(0)
-//           except Exception as e: print("[keyboard] schedule quit failed:", e, flush=True)
-//           break
-//         else:
-//           self.buffer = s
-//           try: line.schedule(1)   # small logical hop
-//           except Exception as e:
-//             print("[keyboard] schedule failed:", e, flush=True)
-//             break
-//     self.th = threading.Thread(target=reader, daemon=True)
-//     self.th.start()
-//   =}
-
-//   reaction(line) -> prompt, quit {=
-//     if self.eof:
-//       quit.set()
-//       environment().sync_shutdown()
-//     else:
-//       prompt.set(self.buffer)
-//   =}
-
-//   reaction(shutdown) {=
-//     self.terminate = True
-//     if self.th and self.th.is_alive():
-//       self.th.join()
-//   =}
-// }
-
 ### Reactor for calling agent 1 
 reactor LlmA {
   state th
@@ -64,20 +9,22 @@ reactor LlmA {
 
   input  user_in
   physical action done 
-  physical action notify_ready 
+  physical action notify_ready
   output answer
   output ready_out
 
-  reaction(startup) {=
-    import os, sys, importlib.util, threading
+  reaction(startup) -> notify_ready {=
+    import os, sys, importlib.util, threading, traceback
+    act = notify_ready
     def _load():
       try:
         here = os.path.dirname(__file__)
         if here not in sys.path: sys.path.insert(0, here)
         from llm_a import agent1
-        notify_ready.schedule(0)
+        act.schedule(1)
       except Exception as e:
         print("[LlmA] Preload failed:", e, flush=True)
+        traceback.print_exc()
     threading.Thread(target=_load, daemon=True).start()
   =}
 
@@ -118,20 +65,22 @@ reactor LlmB {
 
   input  user_in
   physical action done 
-  physical action notify_ready 
+  physical action notify_ready
   output answer
   output ready_out
 
-  reaction(startup) {=
-    import os, sys, importlib.util, threading
+  reaction(startup) -> notify_ready {=
+    import os, sys, importlib.util, threading, traceback
+    act = notify_ready
     def _load():
       try:
         here = os.path.dirname(__file__)
         if here not in sys.path: sys.path.insert(0, here)
         from llm_b import agent2
-        notify_ready.schedule(0)
+        act.schedule(1)
       except Exception as e:
         print("[LlmB] Preload failed:", e, flush=True)
+        traceback.print_exc()
     threading.Thread(target=_load, daemon=True).start()
   =}
 
@@ -163,65 +112,6 @@ reactor LlmB {
   =}
 }
 // ###Judge reactor to determine which agent responds first
-// reactor Judge{
-//   input query
-//   input llma
-//   input llmb
-//   output ask           
-
-//   state waiting = False
-//   state logical_base_time = 0
-//   state physical_base_time = 0
-//   state winner = ""
-
-//   logical action timeout(60 sec)
-
-//   reaction(query) -> timeout, ask {=
-//     self.waiting = True
-//     self.winner = ""
-//     self.logical_base_time  = lf.time.logical_elapsed()
-//     self.physical_base_time = lf.time.physical_elapsed()
-//     timeout.schedule(0)
-//     print(f"\n\n\nQuery: {query.value}\n")
-//     print("waiting...\n")
-//     ask.set(query.value)     
-//   =}
-
-//   reaction(llma) {=
-//     if not self.waiting: 
-//       return
-//     self.waiting = False
-//     logical_now  = lf.time.logical_elapsed()
-//     physical_now = lf.time.physical_elapsed()
-//     logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
-//     physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-//     print(f" Winner: LLM-A | logical {logical_ms} ms | physical {physical_ms} ms")
-//     print(f"{llma.value}")
-//   =}
-
-//   reaction(llmb) {=
-//     if not self.waiting: 
-//       return
-//     self.waiting = False
-//     logical_now  = lf.time.logical_elapsed()
-//     physical_now = lf.time.physical_elapsed()
-//     logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
-//     physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-//     print(f"Winner: LLM-B | logical {logical_ms} ms | physical {physical_ms} ms")
-//     print(f"{llmb.value}")
-//   =}
-
-//   reaction(timeout) {=
-//     if not self.waiting: 
-//       return
-//     self.waiting = False
-//     logical_now  = lf.time.logical_elapsed()
-//     physical_now = lf.time.physical_elapsed()
-//     logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
-//     physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-//     print(f"TIMEOUT (60 s) | logical {logical_ms} ms | physical {physical_ms} ms")
-//   =}
-// }
 
 reactor Judge {
   state th
@@ -245,10 +135,10 @@ reactor Judge {
   output quit
 
   reaction(startup) {=
-    print("[Judge] Waiting for models to load...", flush=True)
+    print("[Judge] Waiting for models to load", flush=True)
   =}
 
-  reaction(ready_a) {=
+  reaction(ready_a)->line {=
     self.a_ready = True
     if self.a_ready and self.b_ready and not self.reader_started:
       import sys, threading
@@ -272,7 +162,7 @@ reactor Judge {
       self.th.start()
   =}
 
-  reaction(ready_b) {=
+  reaction(ready_b)->line {=
     self.b_ready = True
     if self.a_ready and self.b_ready and not self.reader_started:
       import sys, threading
