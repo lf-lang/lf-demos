@@ -11,7 +11,7 @@ preamble {=
 =}
 
 
-federated reactor llm_game_federated at 10.155.214.175 {
+federated reactor llm_game_federated at 10.155.241.175 {
        
   j    = new Judge() 
   llma = new LlmA() 
