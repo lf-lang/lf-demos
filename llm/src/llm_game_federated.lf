@@ -1,5 +1,5 @@
 ### llm.py file needs to be in the same directory
-target Python { keepalive: true, files: ["llm_a.py", "llm_b_m2.py" ] } #"llm_b.py"
+target Python { keepalive: true, files: ["llm_a.py", "llm_b_jetson.py" ] } #"llm_b.py"
 
 import LlmA, LlmB, Judge from "llm_base_class_federate.lf"
 
