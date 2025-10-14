@@ -1,0 +1,100 @@
+target C { timeout: 15 s }
+
+preamble {=
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+typedef struct {
+    FILE* pipe;
+    int   bus;
+    int   addr;
+    int   rate;
+    int   timing_ms;
+} tof_proc_t;
+
+static int tof_start(tof_proc_t* tp, int bus, int addr, int rate, int timing_ms) {
+    tp->bus = bus; tp->addr = addr; tp->rate = rate; tp->timing_ms = timing_ms;
+    char cmd[256];
+    // safer: absolute path so we never depend on cwd
+    snprintf(cmd, sizeof(cmd),
+             "python3 /home/duckie/drone_msp_env/tof_reader.py --bus %d --addr 0x%02X --rate %d --timing_ms %d 2>/dev/null",
+             bus, addr, rate, timing_ms);
+    tp->pipe = popen(cmd, "r");
+    if (!tp->pipe) return -1;
+    int fd = fileno(tp->pipe);
+    int flags = fcntl(fd, F_GETFL, 0);
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    return 0;
+}
+
+static int tof_read_latest(tof_proc_t* tp, double* out_m) {
+    if (!tp || !tp->pipe) return -2;
+    char buf[256];
+    size_t n = fread(buf, 1, sizeof(buf) - 1, tp->pipe);
+    if (n == 0) return -1; // nothing yet
+    buf[n] = 0;
+
+    double v = 0.0;
+    int got = 0;
+    char* p = buf;
+    while (*p) {
+        char* end = NULL;
+        double x = strtod(p, &end);
+        if (end != p) { v = x; got = 1; p = end; } else { p++; }
+    }
+    if (got) { *out_m = v; return 0; }
+    return -3;
+}
+
+static void tof_stop(tof_proc_t* tp) {
+    if (tp && tp->pipe) { pclose(tp->pipe); tp->pipe = NULL; }
+}
+=}
+
+reactor PyToF(bus:int=22, addr:int=41, rate:int=20, timing_ms:int=100) {
+  // start after 100 ms so startup finishes before first poll
+  timer poll(100 ms, 20 ms)
+  output height: double
+
+  // initialize pointer container to 0
+  state tp: long = 0
+  state last_h: double
+
+  reaction(startup) {=
+    tof_proc_t* proc = (tof_proc_t*)malloc(sizeof(tof_proc_t));
+    if (!proc) { fprintf(stderr, "ToF malloc failed\n"); return; }
+    if (tof_start(proc, self->bus, self->addr, self->rate, self->timing_ms) != 0) {
+        fprintf(stderr, "ToF start failed\n"); free(proc); return;
+    }
+    self->tp = (long)(intptr_t)proc; // store pointer safely
+    self->last_h = 0.0;
+    printf("PyToF started on bus %d addr 0x%02X rate %dHz timing %dms\n",
+           self->bus, self->addr, self->rate, self->timing_ms);
+  =}
+
+  reaction(poll) -> height {=
+    tof_proc_t* proc = (tof_proc_t*)(uintptr_t)self->tp;
+    if (!proc) return;
+    double h = 0.0;
+    int r = tof_read_latest(proc, &h);
+    if (r == 0) {
+        self->last_h = h;
+        lf_set(height, h);
+        printf("ToF height m: %.3f\n", h);
+    }
+  =}
+
+  reaction(shutdown) {=
+    tof_proc_t* proc = (tof_proc_t*)(uintptr_t)self->tp;
+    if (proc) { tof_stop(proc); free(proc); self->tp = 0; }
+  =}
+}
+
+main reactor ToFBridgeC {
+  // set bus=1 if your HAT exposes /dev/i2c-1
+  tof = new PyToF(bus=22, addr=41, rate=20, timing_ms=100)
+}
