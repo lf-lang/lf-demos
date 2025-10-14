@@ -1,0 +1,4 @@
+# Ignore Lingua Franca generated source files
+src-gen/
+bin/
+include/
