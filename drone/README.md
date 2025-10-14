@@ -11,6 +11,7 @@ pip install vl53l1x
 ```
 
 ## Testing
+Clone the repository and move to the drone directory.
 You can test the flight of the drone using 
 ```
 lfc src/DroneBrdigeC.lf
