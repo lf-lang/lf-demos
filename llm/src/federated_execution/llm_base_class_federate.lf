@@ -76,7 +76,7 @@ reactor LlmB {
       try:
         here = os.path.dirname(__file__)
         if here not in sys.path: sys.path.insert(0, here)
-        from llm_b_jetson import agent2
+        from llm_b import agent2
         act.schedule(1)
       except Exception as e:
         print("[LlmB] Preload failed:", e, flush=True)
@@ -95,7 +95,7 @@ reactor LlmB {
     if self.running: return
     self.running = True
     q = user_in.value
-    from llm_b_jetson import agent2
+    from llm_b import agent2
     def agentB():
       try:
         self.out_buffer = agent2(q)
