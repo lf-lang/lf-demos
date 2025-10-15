@@ -1,11 +1,11 @@
-# LLM Demo
+# LLM Demo (Federated Execution)
 
 # Overview
-This is a quiz-style game between two LLM agents. For each user question typed at the keyboard, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 60 sec), and prints per-question elapsed logical and physical times. 
+This is a quiz-style game between two LLM agents using federated execution. For each user question asked to the Judge, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 60 sec), and prints per-question elapsed logical and physical times. There are three federates (federate__llma, federate__llmb, federate__j) and an RTI.
 
 # Pre-requisites 
 
-You need Python installed, as llm.py is written in Python.
+You need Python installed, as llm_a.py, llm_b.py, llm_b_m2.py and llm_b_jetson.py are written in Python. # any version >= 3.10
 
 ## Library Dependencies
 To run this project, there are dependencies required which are in lf-demos/llm/requirements.txt file. The model used in this repository has been quantized using 4-bit precision (bnb_4bit) and relies on bitsandbytes for efficient matrix operations and memory optimization. So specific versions of bitsandbytes, torch, and torchvision are mandatory for compatibility. 
@@ -32,13 +32,19 @@ To ensure optimal performance, the following hardware and software requirements 
 Make sure the environment is properly configured to use CUDA for optimal GPU acceleration.
 
 # Files and directories in this repository
-  - **`llm_base_class.lf`** - Contains the base reactors LlmA, LlmB, Keyboard and Judge..
-  - **`llm_quiz_game.lf`** - Lingua Franca program that defines the quiz game reactors (Keyboard input, LLM agent A, LLM agent B and Judge).
+  - **`llm_base_class_federate.lf`** - Contains the base reactors LlmA, LlmB and Judge.
+  - **`llm_game_federated.lf`** - Lingua Franca program that defines the quiz game as federated execution.
 
 # Execution Workflow 
 
 ### Step 1: 
-Run the **`llm_quiz_game.lf`**.  
+To compile this specify the RTI host by specifying an IP address here:
+```
+federated reactor llm_game_federated at 10.xxx.xxx.xx {
+}
+```
+
+Run the **`llm_game_federated.lf`**.  
 
 **Note:**  
 - Ensure that you specify the correct file paths
@@ -46,14 +52,35 @@ Run the **`llm_quiz_game.lf`**.
 Run the following commands:  
 
 ```
-lfc src/llm_quiz_game.lf
+lfc src/federated_execution/llm_game_federated.lf
 ```
 
 ### Step 2: Run the binary file and input the quiz question
-Run the following commands:  
+Run the following command:  
 
 ```
-./bin/llm_quiz_game
+cd fed-gen/llm_game_federated/
+```
+
+In the first terminal run:
+```
+./bin/RTI -n 3
+
+```
+In the second terminal run:
+```
+./bin/federate__j
+
+```
+In the third terminal run:
+```
+./bin/federate__llma
+
+```
+In the fourth terminal run:
+```
+./bin/federate__llmb
+
 ```
 
 The system will ask for entering the quiz question which is to be obtained from the keyboard input.
