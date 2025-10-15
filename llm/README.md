@@ -1,5 +1,5 @@
 # LLM Demo
-
+[Federated execution](src/federated_execution/) - For federated execution of this demo.
 # Overview
 This is a quiz-style game between two LLM agents. For each user question typed at the keyboard, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 60 sec), and prints per-question elapsed logical and physical times. 
 
@@ -8,7 +8,7 @@ This is a quiz-style game between two LLM agents. For each user question typed a
 You need Python installed, as llm.py is written in Python.
 
 ## Library Dependencies
-To run this project, there are dependencies required which are in lf-demos/llm/requirements.txt file. The model used in this repository has been quantized using 4-bit precision (bnb_4bit) and relies on bitsandbytes for efficient matrix operations and memory optimization. So specific versions of bitsandbytes, torch, and torchvision are mandatory for compatibility. 
+To run this project, there are dependencies required which are in [requirements.txt](requirements.txt) file. The model used in this repository has been quantized using 4-bit precision (bnb_4bit) and relies on bitsandbytes for efficient matrix operations and memory optimization. So specific versions of bitsandbytes, torch, and torchvision are mandatory for compatibility. 
 While newer versions of other dependencies may work, the specific versions listed below have been tested and are recommended for optimal performance.
 It is highly recommended to create a Python virtual environment or a Conda environment to manage dependencies. 
 
