@@ -20,12 +20,12 @@ To create the a virtual environment follow the steps below.
 Replace this <> with the environment name
 ```
 python3 -m venv <name of the environement> 
-source <name of the environement>/bin/activate 
+source <name of the environment>/bin/activate 
 ```
 or
 ```
-conda create -n <name of the environement> 
-conda activate <name of the environement> 
+conda create -n <name of the environment> 
+conda activate <name of the environment> 
 ```
 ### Step 2: Installing the required packages
 Check if pip is installed:
