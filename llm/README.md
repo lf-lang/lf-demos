@@ -19,7 +19,7 @@ To create the a virtual environment follow the steps below.
 ### Step 1: Creating environment
 Replace this <> with the environment name
 ```
-python3 -m venv <name of the environement> 
+python3 -m venv <name of the environment> 
 source <name of the environment>/bin/activate 
 ```
 or
