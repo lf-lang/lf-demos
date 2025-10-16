@@ -1,7 +1,10 @@
-# LLM Demo
-[Federated execution](src/federated_execution/) - For federated execution of this demo.
-# Overview
+
+# LLM Demo Overview
 This is a quiz-style game between two LLM agents. For each user question typed at the keyboard, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 60 sec), and prints per-question elapsed logical and physical times. 
+
+# Directory Structure
+- [federated](src/federated/) - Directory for federated versions of LLM demos.
+- [agents](src/agents/) - Directory for Python files for various LLM agents.
 
 # Pre-requisites 
 
