@@ -1,16 +1,63 @@
-# LLM Demo (Federated Execution)
+# LLM Demo (Federated Execution) Overview
 
-# Overview
 This is a quiz-style game between two LLM agents using federated execution. For each user question asked to the Judge, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 60 sec), and prints per-question elapsed logical and physical times. There are three federates (federate__llma, federate__llmb, federate__j) and an RTI.
 
 # Pre-requisites 
 
-You need Python installed, as llm_a.py, llm_b.py, llm_b_m2.py and llm_b_jetson.py are written in Python. # any version >= 3.10
+You need Python >= 3.10 installed.
 
 ## Library Dependencies
 To run this project, there are dependencies required which are in [requirements.txt](requirements.txt) file. The model used in this repository has been quantized using 4-bit precision (bnb_4bit) and relies on bitsandbytes for efficient matrix operations and memory optimization. So specific versions of bitsandbytes, torch, and torchvision are mandatory for compatibility. 
 While newer versions of other dependencies may work, the specific versions listed below have been tested and are recommended for optimal performance.
-It is highly recommended to create a Python virtual environment or a Conda environment to manage dependencies. 
+It is highly recommended to create a Python virtual environment or a Conda environment to manage dependencies. \
+To create the a virtual environment follow the steps below.
+
+### Step 1: Creating environment
+Replace this <> with the environment name
+```
+python3 -m venv <name of the environment> 
+source <name of the environment>/bin/activate 
+```
+or
+```
+conda create -n <name of the environment> 
+conda activate <name of the environment> 
+```
+### Step 2: Installing the required packages
+Check if pip is installed:
+```
+pip --version
+```
+If it is not installed:
+```
+python -m pip install --upgrade pip
+```
+Run this command to install the packages from the [requirements.txt](requirements.txt) file:
+```
+pip install -r requirements.txt
+```
+For installing torch:
+
+1. For devices without GPU
+```
+pip install torch torchvision
+```
+2. For devices with GPU
+   Checking the CUDA version run this command:
+   ```
+   nvidia-smi
+   ```
+   Look for the line "CUDA Version" as shown in the image: \
+   <img src="lf-demos/llm/img/cudaversion.png" width="400" height="300"> 
+
+   With the correct version install PyTorch from [PyTorch](https://pytorch.org/get-started/locally/) by selecting the right correct OS and compute platform as shown in the image below for Linux system with CUDA version 12.8: \
+   <img src="lf-demos/llm/img/pytorch.png" width="400" height="300"> 
+### Step 3: Model Dependencies  
+- **Pre-trained Models used in the agents/llm_a.py and agents/llm_b.py**:  [meta-llama/Llama-2-7b-chat-hf](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf) , [meta-llama/Llama-2-70b-chat-hf](https://huggingface.co/meta-llama/Llama-2-70b-chat-hf) \
+**Note:** Follow the steps below to obtain the access and authentication key for the hugging face models.
+1. Create the user access token and follow the steps shown on the official documentation: [User access tokens](https://huggingface.co/docs/hub/en/security-tokens)
+2. Log in using the Hugging Face CLI by running huggingface-cli login. Please refer to the official documentation for step-by-step instructions - [HuggingFace CLI](https://huggingface.co/docs/huggingface_hub/en/guides/cli)
+3. For the Llama Models you will require access to use the models if you are using it for the first time. Open these links and apply for accessing the models ([meta-llama/Llama-2-7b-chat-hf](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf), [meta-llama/Llama-2-70b-chat-hf](https://huggingface.co/meta-llama/Llama-2-70b-chat-hf))
 
 ## System Requirements  
 
@@ -18,16 +65,13 @@ To ensure optimal performance, the following hardware and software requirements 
 **Note:** To replicate this model, you can use any equivalent hardware that meets the computational requirements.
 
 ### Hardware Requirements   
+The demo was tested with the following hardware setup.
 - **GPU**: NVIDIA RTX A6000  
 
 ### Software Requirements  
-- **Python** (Ensure Python is installed)  
+- **OS**: Linux
+- **Python**   
 - **CUDA Version**: 12.8  
-- **NVIDIA-SMI**: For monitoring GPU performance and memory utilization  
-
-### Model Dependencies  
-- **Pre-trained Models**:  [meta-llama/Llama-2-7b-chat-hf](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf)  [meta-llama/Llama-2-70b-chat-hf](https://huggingface.co/meta-llama/Llama-2-70b-chat-hf) 
-**Note:** Please access and use the pre-trained models, authentication keys must be obtained from the [Hugging Face repository](https://huggingface.co/settings/tokens). Ensure you have a valid API token and configure authentication.
 
 Make sure the environment is properly configured to use CUDA for optimal GPU acceleration.
 
@@ -105,3 +149,6 @@ Answer: Seoul.
 </pre>
 
 # Contributors
+- Deeksha Prahlad (dprahlad@asu.edu), Ph.D. student at Arizona State University
+- Hokeun Kim (hokeun@asu.edu, https://hokeun.github.io/), Assistant professor at Arizona State University 
+
