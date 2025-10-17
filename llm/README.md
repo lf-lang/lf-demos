@@ -17,15 +17,15 @@ It is highly recommended to create a Python virtual environment or a Conda envir
 To create the a virtual environment follow the steps below.
 
 ### Step 1: Creating environment
-Replace this <> with the environment name
 ```
-python3 -m venv <name of the environment> 
-source <name of the environment>/bin/activate 
+python3 -m venv llm
+source llm/bin/activate 
 ```
+For activating the environment everytime use "source llm/bin/activate". 
 or
 ```
-conda create -n <name of the environment> 
-conda activate <name of the environment> 
+conda create -n llm
+conda activate llm
 ```
 ### Step 2: Installing the required packages
 Check if pip is installed:
