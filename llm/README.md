@@ -126,3 +126,5 @@ Answer: Seoul.
 </pre>
 
 # Contributors
+- Deeksha Prahlad (dprahlad@asu.edu), Ph.D. student at Arizona State University
+- Hokeun Kim (hokeun@asu.edu, https://hokeun.github.io/), Assistant professor at Arizona State University 
