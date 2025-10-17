@@ -48,10 +48,10 @@ pip install torch torchvision
    nvidia-smi
    ```
    Look for the line "CUDA Version" as shown in the image: \
-   <img src="lf-demos/llm/img/cudaversion.png" width="400" height="300"> 
+   <img src="../../img/cudaversion.png" width="400" height="300"> 
 
    With the correct version install PyTorch from [PyTorch](https://pytorch.org/get-started/locally/) by selecting the right correct OS and compute platform as shown in the image below for Linux system with CUDA version 12.8: \
-   <img src="lf-demos/llm/img/pytorch.png" width="400" height="300"> 
+   <img src="../../img/pytorch.png" width="400" height="300"> 
 ### Step 3: Model Dependencies  
 - **Pre-trained Models used in the agents/llm_a.py and agents/llm_b.py**:  [meta-llama/Llama-2-7b-chat-hf](https://huggingface.co/meta-llama/Llama-2-7b-chat-hf) , [meta-llama/Llama-2-70b-chat-hf](https://huggingface.co/meta-llama/Llama-2-70b-chat-hf) \
 **Note:** Follow the steps below to obtain the access and authentication key for the hugging face models.
