@@ -36,9 +36,14 @@ If it is not installed:
 ```
 python -m pip install --upgrade pip
 ```
-Run this command to install the packages from the [requirements.txt](requirements.txt) file:
+Run this command to install the packages from the [requirements.txt](requirements.txt) file:\
+**Note**: Since we are using LLMs with 7B and 70B parameters it is recommended to have a device with GPU support. 
 ```
 pip install -r requirements.txt
+```
+To check if all the requirements are installed, run:
+```
+pip list | grep -E "transformers|accelerate|tokenizers|bitsandbytes"
 ```
 For installing torch:
 
