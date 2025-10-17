@@ -8,7 +8,7 @@ This is a quiz-style game between two LLM agents. For each user question typed a
 
 # Pre-requisites 
 
-You need Python installed, as llm.py is written in Python.
+You need Python >= 3.10 installed.
 
 ## Library Dependencies
 To run this project, there are dependencies required which are in [requirements.txt](requirements.txt) file. The model used in this repository has been quantized using 4-bit precision (bnb_4bit) and relies on bitsandbytes for efficient matrix operations and memory optimization. So specific versions of bitsandbytes, torch, and torchvision are mandatory for compatibility. 
