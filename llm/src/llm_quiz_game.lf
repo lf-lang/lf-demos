@@ -1,28 +1,23 @@
-### llm.py file needs to be in the same directory
 target Python { keepalive: true, files: ["agents/llm.py"] }
 
-import KeyboardInput from "llm_base_class.lf"
+
 import LlmA from "llm_base_class.lf"
 import LlmB from "llm_base_class.lf"
 import Judge from "llm_base_class.lf"
 
 preamble {=
   import threading
-  import time 
-  from llm import agent1, agent2  
+  import time
+  from llm import agent1, agent2
 =}
 
 main reactor {
   llma_response = new LlmA()
   llmb_response = new LlmB()
-  keyboard = new KeyboardInput()
   j = new Judge()
 
-  keyboard.prompt -> j.query
   j.ask -> llma_response.user_in
   j.ask -> llmb_response.user_in
   llma_response.answer -> j.llma
   llmb_response.answer -> j.llmb
 }
-
-

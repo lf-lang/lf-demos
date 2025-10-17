@@ -1,10 +1,10 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-hf_auth = "add your token here"
-
+#Model
 model_id_2 = "google/gemma-3-270m"
 
+#Device setup
 has_cuda = torch.cuda.is_available()
 has_mps  = torch.backends.mps.is_available()
 
@@ -18,16 +18,16 @@ else:
     device = torch.device("cpu")
     compute_dtype = torch.float32
 
-
+#Common model kwargs
 common = dict(
     low_cpu_mem_usage=True,
-    attn_implementation="eager",
+    attn_implementation="eager"
 )
 
-#4-bit on CUDA if the device has it 
+#4-bit quantization on CUDA if available
 if has_cuda:
     try:
-        import bitsandbytes as bnb  
+        import bitsandbytes as bnb
         common["quantization_config"] = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
@@ -41,25 +41,21 @@ if has_cuda:
 else:
     common["device_map"] = None
 
-# Tokenizer 
-tok_kwargs = dict(use_fast=True)
-if hf_auth:
-    tok_kwargs["token"] = hf_auth
-tokenizer_2 = AutoTokenizer.from_pretrained(model_id_2, **tok_kwargs)
+#Tokenizer and the token automatically used if logged in via CLI
+tokenizer_2 = AutoTokenizer.from_pretrained(model_id_2, use_fast=True)
 if tokenizer_2.pad_token_id is None:
     tokenizer_2.pad_token = tokenizer_2.eos_token
 
 # Model
 mp_kwargs = dict(dtype=compute_dtype, **common)
-if hf_auth:
-    mp_kwargs["token"] = hf_auth
-
 model_2 = AutoModelForCausalLM.from_pretrained(model_id_2, **mp_kwargs)
-if not has_cuda: 
+
+
+if not has_cuda:
     model_2.to(device)
 model_2.eval()
 
-# Greedy decoding 
+# Generation 
 GEN_B = dict(
     max_new_tokens=32,
     do_sample=True,
@@ -94,9 +90,3 @@ def agent2(q: str) -> str:
     result = tokenizer_2.decode(out[0][prompt_len:], skip_special_tokens=True)
     print(result)
     return postprocess(result)
-
-# def main():
-#     agent2("what is AI?")
-
-# if __name__ == "__main__":
-#     main()

@@ -4,8 +4,6 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from torch import cuda, bfloat16
 
-### Add Your hugging face token here 
-hf_auth = "Add your token here"
 
 ### Model to be chosen to act as an agent 
 model_id = "meta-llama/Llama-2-7b-chat-hf"  
@@ -31,8 +29,8 @@ if has_cuda:
         bnb_config = None  
 
 ### calling pre-trained tokenizer
-tokenizer   = AutoTokenizer.from_pretrained(model_id,   token=hf_auth, use_fast=True)
-tokenizer_2 = AutoTokenizer.from_pretrained(model_id_2, token=hf_auth, use_fast=True)
+tokenizer   = AutoTokenizer.from_pretrained(model_id,   use_fast=True)
+tokenizer_2 = AutoTokenizer.from_pretrained(model_id_2, use_fast=True)
 for tok in (tokenizer, tokenizer_2):
     if tok.pad_token_id is None:
         tok.pad_token = tok.eos_token
@@ -40,17 +38,16 @@ for tok in (tokenizer, tokenizer_2):
 ### since both the models have same device map and using 4bit quantization for both
 common = dict(
     device_map="auto" if has_cuda else None,
-    dtype=dtype,                 
+    torch_dtype=dtype,            # Changed from dtype=dtype (correct arg name)             
     low_cpu_mem_usage=True,
 )
 if bnb_config is not None:
     common["quantization_config"] = bnb_config
 
 ### calling pre-trained model
-model   = AutoModelForCausalLM.from_pretrained(model_id,   token=hf_auth, **common)
-model_2 = AutoModelForCausalLM.from_pretrained(model_id_2, token=hf_auth, **common)
+model   = AutoModelForCausalLM.from_pretrained(model_id,   **common)
+model_2 = AutoModelForCausalLM.from_pretrained(model_id_2, **common)
 model.eval(); model_2.eval()
-
 
 
 ### arguments for both the models 

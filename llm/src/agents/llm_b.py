@@ -1,26 +1,22 @@
-
-# llm_b.py 
+# llm_b.py
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-# <<< put your token here >>>
-hf_auth = "add token here"
-
-# Model 
+#Model
 model_id_2 = "meta-llama/Llama-2-70b-chat-hf"
 
-# Require GPU 
+#Requires the GPU for this model
 has_cuda = torch.cuda.is_available()
 if not has_cuda:
     raise RuntimeError("CUDA GPU required for this configuration.")
 dtype = torch.bfloat16 if has_cuda else torch.float32
 
-# 4-bit quantization
+#4-bit quantization
 bnb_config = None
 if has_cuda:
     try:
-        import bitsandbytes as bnb  
+        import bitsandbytes as bnb
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_quant_type="nf4",
@@ -30,31 +26,35 @@ if has_cuda:
     except Exception:
         bnb_config = None
 
-# Tokenizer
-tokenizer_2 = AutoTokenizer.from_pretrained(model_id_2, token=hf_auth, use_fast=True)
+#Tokenizer and the token automatically used if logged in via CLI
+tokenizer_2 = AutoTokenizer.from_pretrained(model_id_2, use_fast=True)
 if tokenizer_2.pad_token_id is None:
     tokenizer_2.pad_token = tokenizer_2.eos_token
 
-# Shared kwargs
+
 common = dict(
     device_map="auto" if has_cuda else None,
-    dtype=dtype,
+    torch_dtype=dtype,
     low_cpu_mem_usage=True,
 )
+
 if bnb_config is not None:
     common["quantization_config"] = bnb_config
 
-# Model
-model_2 = AutoModelForCausalLM.from_pretrained(model_id_2, token=hf_auth, **common)
+#Model 
+model_2 = AutoModelForCausalLM.from_pretrained(model_id_2, **common)
 model_2.eval()
 
-# Generation args
+#Generation
 GEN_B = dict(
-    max_new_tokens=24, do_sample=False, temperature=0.1,
-    eos_token_id=tokenizer_2.eos_token_id, pad_token_id=tokenizer_2.pad_token_id
+    max_new_tokens=24,
+    do_sample=False,
+    temperature=0.1,
+    eos_token_id=tokenizer_2.eos_token_id,
+    pad_token_id=tokenizer_2.pad_token_id,
 )
 
-# One-line postprocess
+#Post-processing
 def postprocess(text: str) -> str:
     t = text.strip()
     for sep in ["\n", ". ", "  "]:
@@ -64,14 +64,17 @@ def postprocess(text: str) -> str:
             break
     return t.strip().strip(":").strip()
 
-# Agent 2 
+#Agent 2
 def agent2(q: str) -> str:
     prompt = f"You are a concise Q&A assistant.\n\n{q}\n"
     inputs = tokenizer_2(prompt, return_tensors="pt")
+
     if has_cuda:
         inputs = {k: v.to("cuda") for k, v in inputs.items()}
+
     with torch.no_grad():
         out = model_2.generate(**inputs, **GEN_B)
+
     prompt_len = inputs["input_ids"].shape[1]
     result = tokenizer_2.decode(out[0][prompt_len:], skip_special_tokens=True)
     print(result)
