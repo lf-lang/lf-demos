@@ -1,6 +1,6 @@
 
 # LLM Demo Overview
-This is a quiz-style game between two LLM agents. For each user question typed at the keyboard, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 60 sec), and prints per-question elapsed logical and physical times. 
+This is a quiz-style game between two LLM agents. For each user question typed at the keyboard for the judge, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 60 sec), and prints per-question elapsed logical and physical times. 
 
 # Directory Structure
 - [federated](src/federated/) - Directory for federated versions of LLM demos.
@@ -80,8 +80,8 @@ The demo was tested with the following hardware setup.
 Make sure the environment is properly configured to use CUDA for optimal GPU acceleration.
 
 # Files and directories in this repository
-  - **`llm_base_class.lf`** - Contains the base reactors LlmA, LlmB, Keyboard and Judge..
-  - **`llm_quiz_game.lf`** - Lingua Franca program that defines the quiz game reactors (Keyboard input, LLM agent A, LLM agent B and Judge).
+  - **`llm_base_class.lf`** - Contains the base reactors LlmA, LlmB, and Judge.
+  - **`llm_quiz_game.lf`** - Lingua Franca program that defines the quiz game reactors (LLM agent A, LLM agent B and Judge).
 
 # Execution Workflow 
 
