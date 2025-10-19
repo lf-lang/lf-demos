@@ -1,3 +1,7 @@
+/**
+ * This version puts two probes on the local machine and sends all measurements to a web socket.
+ * point your browser to http://localhost:8080 and http://localhost:8081 to see the measurements.
+ */
 target C {
   coordination: decentralized,
   keepalive: true
