@@ -22,11 +22,11 @@ reactor Balance(STA: time = forever) {
 federated reactor(true_balance_period: time = 10 s) {
   w1 = new IntWebSocketServer(
     hostport = 8080,
-    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank1.html" =}
+    initial_file = "Bank1.html"
   )
   w2 = new IntWebSocketServer(
     hostport = 8081,
-    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Bank2.html" =}
+    initial_file = "Bank2.html"
   )
   a1 = new AccountManagerWithRecovery(STA = 30 ms, true_balance_period = true_balance_period)
   a2 = new AccountManagerWithRecovery(STA = 30 ms, true_balance_period = true_balance_period)
