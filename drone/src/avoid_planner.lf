@@ -1,7 +1,7 @@
 target C
 
 reactor AvoidPlanner {
-  timer tick(0, 20 ms) // 50 Hz
+  // timer tick(0, 20 ms) // 50 Hz
 
   input front:double; input left:double; input right:double; input bottom:double; input top:double
   output roll:int; output pitch:int; output yaw:int; output throttle:int; output aux1:int; output aux2:int
@@ -34,24 +34,30 @@ reactor AvoidPlanner {
   state t_bump:int    = 75    // 1.5 s
   state hover_ok:int  = 0
 
-  state f:double=-1.0; state l:double=-1.0; state r:double=-1.0; state b:double=-1.0; state t:double=-1.0
-  reaction(front){= self->f = front->value; =}
-  reaction(left){=  self->l = left->value;  =}
-  reaction(right){= self->r = right->value; =}
-  reaction(bottom){=self->b = bottom->value;=}
-  reaction(top){=   self->t = top->value;   =}
+  state initialized:bool = false
 
-  reaction(startup) -> roll,pitch,yaw,throttle,aux1,aux2 {=
-    lf_set(roll,1500); lf_set(pitch,1500); lf_set(yaw,1500);
-    lf_set(throttle,1000); lf_set(aux1,1000);
-    lf_set(aux2,1800); // ANGLE ON
-    self->stage=0; self->count=0; self->i_h=0.0; self->hover_ok=0;
-  =}
+  // state f:double=-1.0; state l:double=-1.0; state r:double=-1.0; state b:double=-1.0; state t:double=-1.0
+  // reaction(front){= self->f = front->value; =}
+  // reaction(left){=  self->l = left->value;  =}
+  // reaction(right){= self->r = right->value; =}
+  // reaction(bottom){=self->b = bottom->value;=}
+  // reaction(top){=   self->t = top->value;   =}
 
-  reaction(tick) -> roll,pitch,yaw,throttle,aux1,aux2 {=
+  reaction(startup, front, left, right, bottom, top) -> roll, pitch, yaw, throttle, aux1, aux2 {=
+    if (!self->initialized){
+      self->initialized = true;
+      lf_set(roll,1500); lf_set(pitch,1500); lf_set(yaw,1500);
+      lf_set(throttle,1000); lf_set(aux1,1000);
+      lf_set(aux2,1800); // ANGLE ON
+      self->stage=0; self->count=0; self->i_h=0.0; self->hover_ok=0;
+      return;
+    }
+
     int rc_roll=1500, rc_pitch=1500, rc_yaw=1500, rc_thr=1000;
     int rc_aux1=1000, rc_aux2=1800;
 
+    // TODO(Pawan): Make this modal model.
+    // TODO(Pawan): Try using values from input ports directly instead of using state variables.
     switch(self->stage){
       case 0: rc_thr=1000; rc_aux1=1000; if(++self->count>=self->t_neutral){self->count=0; self->stage=1;} break;
       case 1: rc_thr=1000; rc_aux1=1800; if(++self->count>=self->t_arm){self->count=0; self->stage=2;} break;
