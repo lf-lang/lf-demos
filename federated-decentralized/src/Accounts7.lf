@@ -15,8 +15,10 @@ federated reactor {
     hostport = 8081,
     initial_file = "Bank2.html"
   )
-  a1 = new AccountManager(STA = 30 ms)
-  a2 = new AccountManager(STA = 30 ms)
+  @maxwait(30 ms)
+  a1 = new AccountManager()
+  @maxwait(30 ms)
+  a2 = new AccountManager()
 
   w1.received -> a1.in1
   w2.received -> a2.in2

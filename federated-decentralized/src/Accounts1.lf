@@ -5,7 +5,7 @@ target C {
 
 import IntWebSocketServer from "lib/IntWebSocketServer.lf"
 
-reactor ACIDAccountManager(STA: time = 0) {
+reactor ACIDAccountManager {
   input in1: int
   input in2: int
   output out: int
