@@ -86,16 +86,8 @@ reactor QuickDeposit {
 }
 
 federated reactor {
-  w1 = new Server(
-    hostport = 8080,
-    null_message_period = 5 s,
-    initial_file = "Bank1.html"
-  )
-  w2 = new Server(
-    hostport = 8081,
-    null_message_period = 5 s,
-    initial_file = "Bank2.html"
-  )
+  w1 = new Server(hostport=8080, null_message_period = 5 s, initial_file="Bank1.html")
+  w2 = new Server(hostport=8081, null_message_period = 5 s, initial_file="Bank2.html")
   @maxwait(forever)
   a1 = new Account()
   @maxwait(forever)

@@ -21,18 +21,12 @@ reactor Balance {
 }
 
 federated reactor(true_balance_period: time = 10 s) {
-  w1 = new IntWebSocketServer(
-    hostport = 8080,
-    initial_file = "Bank1.html"
-  )
-  w2 = new IntWebSocketServer(
-    hostport = 8081,
-    initial_file = "Bank2.html"
-  )
+  w1 = new IntWebSocketServer(hostport=8080, initial_file="Bank1.html")
+  w2 = new IntWebSocketServer(hostport=8081, initial_file="Bank2.html")
   @maxwait(30 ms)
-  a1 = new AccountManagerWithRecovery(true_balance_period = true_balance_period)
+  a1 = new AccountManagerWithRecovery(true_balance_period=true_balance_period)
   @maxwait(30 ms)
-  a2 = new AccountManagerWithRecovery(true_balance_period = true_balance_period)
+  a2 = new AccountManagerWithRecovery(true_balance_period=true_balance_period)
 
   @maxwait(forever)
   b = new Balance()
