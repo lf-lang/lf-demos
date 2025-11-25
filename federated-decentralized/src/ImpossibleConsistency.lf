@@ -1,8 +1,8 @@
 /**
- * In this pattern, there are no finite STA offsets that enable each Update reactor to advance its tag.
+ * In this pattern, there are no finite maxwait offsets that enable each Update reactor to advance its tag.
  * A positive value that is the same for both federates won't work because it will delay the outputs by
  * the same amount, so waiting that amount offers no information about the remote tag. Asymmetric values
- * won't work either because the federate with the smaller STA will potentially prematurely advance its tag.
+ * won't work either because the federate with the smaller maxwait will potentially prematurely advance its tag.
  * This situation is described in the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119) paper, where
  * the processing offsets go to infinity.
  *

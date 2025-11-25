@@ -7,7 +7,7 @@ target C {
   keepalive: true
 }
 
-reactor Node (period: time = 1 s, STA: time = 0) {
+reactor Node (period: time = 1 s) {
   input in: int
   output out: int
   timer t(0, period)
@@ -25,10 +25,7 @@ reactor Node (period: time = 1 s, STA: time = 0) {
 
   reaction(in) {=
     measure();
-  =} STAA(0) {=
-    // Handle STP violations just like normal inputs.
-    measure();
-  =}
+  =} tardy // Handle STP violations just like normal inputs.
 }
 
 federated reactor at lf-mac.eecs.berkeley.edu {

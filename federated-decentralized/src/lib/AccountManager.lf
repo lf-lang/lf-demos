@@ -8,10 +8,8 @@ target C
  * rejected. If both inputs are withdrawls, then if in1 alone does not result in a negative balance,
  * then the in1 withdrawl will be accepted and the in2 withdrawl rejected. If in1 is rejected, then
  * in2 may be allowed if it does not result in a negative balance.
- *
- * This reactor has an STA parameter so it can be used with decentralized coordination.
  */
-reactor AccountManager(STA: time = 0) {
+reactor AccountManager {
   input in1: int
   input in2: int
   output out: int

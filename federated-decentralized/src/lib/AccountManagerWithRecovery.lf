@@ -18,10 +18,8 @@ preamble {=
  * rejected. If both inputs are withdrawls, then if local alone does not result in a negative balance,
  * then the local withdrawl will be accepted and the remote withdrawl rejected. If local is rejected, then
  * remote may be allowed if it does not result in a negative balance.
- *
- * This reactor has an STA parameter so it can be used with decentralized coordination.
  */
-reactor AccountManagerWithRecovery(STA: time = 0, true_balance_period: time = 10 s, min_spacing = 1 s) {
+reactor AccountManagerWithRecovery(true_balance_period: time = 10 s, min_spacing = 1 s) {
   preamble {=
     // Return an updated balance and local cash in/out given the previous balance, local
     // cash in/out, and remote cash in/out.  If verbose is true, print information.

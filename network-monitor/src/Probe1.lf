@@ -9,7 +9,7 @@ target C {
 
 import WebSocketServerString from "lib/WebSocketServerString.lf"
 
-reactor Node (period: time = 1 s, STA: time = 0) {
+reactor Node (period: time = 1 s) {
   preamble {=
     #include <string.h> // For strlen()
   =}
@@ -33,7 +33,7 @@ reactor Node (period: time = 1 s, STA: time = 0) {
   reaction(in) -> lag {=
     char* message = measure();
     lf_set_array(lag, message, strlen(message));
-  =} STAA(0) {=
+  =} tardy {=
     // Handle STP violations just like normal inputs.
     char* message = measure();
     lf_set_array(lag, message, strlen(message));

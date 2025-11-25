@@ -31,7 +31,7 @@ reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_mes
     char* result;
     asprintf(&result, "%d", amount);
     lf_set_array(w.in_dynamic, result, strlen(result));
-  =} STAA(0) {=
+  =} tardy {=
     // Ignore STP violations.
     int amount;
     if (in2->is_present) {
@@ -45,7 +45,7 @@ reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_mes
   =}
 }
 
-reactor QuickDeposit(STA: time = 30 ms) {
+reactor QuickDeposit {
   input deposit: int
   input true_balance: int
   output ack: int
@@ -64,7 +64,7 @@ reactor QuickDeposit(STA: time = 30 ms) {
     }
     lf_set(ack, self->balance);
     lf_print("**** Tentative balance: %d", self->balance);
-  =} STAA(0) {=
+  =} tardy {=
     // Ignore STP violations.
     if (true_balance->is_present) {
       self->balance = true_balance->value;
@@ -91,8 +91,10 @@ federated reactor {
     null_message_period = 5 s,
     initial_file = "Bank2.html"
   )
-  a1 = new Account(STA = forever)
-  a2 = new Account(STA = forever)
+  @maxwait(forever)
+  a1 = new Account()
+  @maxwait(forever)
+  a2 = new Account()
 
   w1.received -> a1.in1
   w2.received -> a2.in2
@@ -102,7 +104,9 @@ federated reactor {
   a1.out -> w1.in1
   a2.out -> w2.in1
 
+  @maxwait(30 ms)
   q1 = new QuickDeposit()
+  @maxwait(30 ms)
   q2 = new QuickDeposit()
 
   w1.received -> q1.deposit

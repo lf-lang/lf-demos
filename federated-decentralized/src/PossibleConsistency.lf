@@ -1,5 +1,5 @@
 /**
- * In this pattern, an STA offset of zero enables each Update reactor to advance its tag under the assumption
+ * In this pattern, a maxwait of zero enables each Update reactor to advance its tag under the assumption
  * that the period is sufficiently large that when physical time reaches a timer time, the remote input with
  * the _previous_ timer time will have been received.
  * This situation is described in the [CAL theorem](https://dl.acm.org/doi/10.1145/3609119) paper, where
@@ -23,7 +23,7 @@ reactor Update {
   reaction(remote) {=
     self->balance += remote->value;
     lf_print("Balance at time " PRINTF_TIME " is %d", lf_time_logical_elapsed(), self->balance);
-  =} STAA(forever) {=
+  =} tardy {=
     // Unexpected.
     lf_print_warning("Unexpected STP violation");
   =}
@@ -31,6 +31,8 @@ reactor Update {
 federated reactor {
   u1 = new Update()
   u2 = new Update()
+  @absent_after(forever)
   u1.out -> u2.remote
+  @absent_after(forever)
   u2.out -> u1.remote
 }
