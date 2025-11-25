@@ -4,25 +4,25 @@ import NetworkLatencyProbe from "./NetworkLatencyProbe.lf"
 import MovingWorstCase from "./MovingWorstCase.lf"
 import LatencyHttpServer from "./HttpServer.lf"
 
-reactor NetworkMonitor(bank_index:int = 0, width: int=1) {
-  input [width] probe_in: LatencyMessage
-  output [width] probe_out: LatencyMessage
-  output [width] latencies_raw: interval_t
-  output [width] latencies_filtered: interval_t
+reactor NetworkMonitor(bank_index: int = 0, width: int = 1) {
+  input[width] probe_in: LatencyMessage
+  output[width] probe_out: LatencyMessage
+  output[width] latencies_raw: interval_t
+  output[width] latencies_filtered: interval_t
 
   probe = new NetworkLatencyProbe(
-    bank_index=bank_index, 
-    width=width, 
-    request_interval=2 sec,
-    worst_case_latency=1 sec,
-    debug=false)
-  
+      bank_index=bank_index,
+      width=width,
+      request_interval = 2 sec,
+      worst_case_latency = 1 sec,
+      debug=false)
+
   filter = new MovingWorstCase(width=width, window=10)
-  http = new LatencyHttpServer(width=width, port={=8080 + self->bank_index=})
+  http = new LatencyHttpServer(width=width, port = {= 8080 + self->bank_index =})
 
   probe.msg_out -> probe_out
   probe_in -> probe.msg_in
-  
+
   probe.latencies -> filter.in
   probe.latencies -> http.latencies
 

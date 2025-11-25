@@ -9,7 +9,7 @@ target C {
 
 import WebSocketServerString from "lib/WebSocketServerString.lf"
 
-reactor Node (period: time = 1 s) {
+reactor Node(period: time = 1 s) {
   preamble {=
     #include <string.h> // For strlen()
   =}
@@ -42,13 +42,11 @@ reactor Node (period: time = 1 s) {
 
 federated reactor {
   w1 = new WebSocketServerString(
-    hostport = 8080,
-    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Probe1.html" =}
-  )
+      hostport=8080,
+      initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Probe1.html" =})
   w2 = new WebSocketServerString(
-    hostport = 8081,
-    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Probe2.html" =}
-  )
+      hostport=8081,
+      initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Probe2.html" =})
   p1 = new Node()
   p2 = new Node()
 

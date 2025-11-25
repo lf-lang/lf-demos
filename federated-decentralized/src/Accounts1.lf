@@ -26,12 +26,8 @@ reactor ACIDAccountManager {
 }
 
 federated reactor {
-  w1 = new IntWebSocketServer(
-      hostport=8080,
-      initial_file = "Bank1.html")
-  w2 = new IntWebSocketServer(
-      hostport=8081,
-      initial_file = "Bank2.html")
+  w1 = new IntWebSocketServer(hostport=8080, initial_file="Bank1.html")
+  w2 = new IntWebSocketServer(hostport=8081, initial_file="Bank2.html")
   a1 = new ACIDAccountManager()
   a2 = new ACIDAccountManager()
 

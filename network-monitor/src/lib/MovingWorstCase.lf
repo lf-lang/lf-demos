@@ -1,10 +1,9 @@
-/* A filter outputting the moving worst-case of the input */
-target C;
+/** A filter outputting the moving worst-case of the input */
+target C
 
-
-reactor MovingWorstCase(width:int=1, window: int = 10) {
-  input [width] in: interval_t
-  output [width] out: interval_t
+reactor MovingWorstCase(width: int = 1, window: int = 10) {
+  input[width] in: interval_t
+  output[width] out: interval_t
 
   state values: interval_t**
 

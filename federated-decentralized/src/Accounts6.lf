@@ -6,13 +6,17 @@ target C {
 import IntWebSocketServer from "lib/IntWebSocketServer.lf"
 import AccountManager from "lib/AccountManager.lf"
 
-reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_message_period: time = 1 s) {
+reactor Server(
+    hostport: int = 8080,
+    initial_file: string = {= NULL =},
+    null_message_period: time = 1 s) {
   input in: int
   output received: int
   timer t(0, null_message_period)
-  w = new IntWebSocketServer(hostport = hostport, initial_file = initial_file)
+  w = new IntWebSocketServer(hostport=hostport, initial_file=initial_file)
   in -> w.response
-  reaction (w.received, t) -> received {=
+
+  reaction(w.received, t) -> received {=
     if (w.received->is_present) {
       lf_set(received, w.received->value);
     } else {
@@ -23,14 +27,8 @@ reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_mes
 }
 
 federated reactor {
-  w1 = new Server(
-    hostport = 8080,
-    initial_file = "Bank1.html"
-  )
-  w2 = new Server(
-    hostport = 8081,
-    initial_file = "Bank2.html"
-  )
+  w1 = new Server(hostport=8080, initial_file="Bank1.html")
+  w2 = new Server(hostport=8081, initial_file="Bank2.html")
   @maxwait(forever)
   a1 = new AccountManager()
   @maxwait(forever)
