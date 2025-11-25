@@ -27,8 +27,14 @@ reactor Server(
 }
 
 federated reactor {
-  w1 = new Server(hostport=8080, initial_file="Bank1.html")
-  w2 = new Server(hostport=8081, initial_file="Bank2.html")
+  w1 = new Server(
+    hostport = 8080,
+    initial_file = "Bank1.html"
+  )
+  w2 = new Server(
+    hostport = 8081,
+    initial_file = "Bank2.html"
+  )
   @maxwait(forever)
   a1 = new AccountManager()
   @maxwait(forever)
