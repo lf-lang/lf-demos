@@ -1,11 +1,12 @@
 /**
- * This examples also uses the NetworkMonitor, but instead of interacting with it through HTTP. It puts the
- * other program inside the same federate. It gets the latency mesaurements from the output ports of the
- * NetworkMonitor. Federate 0, periodically sends a command string to the other federates together with a
- * timestamp at which the command should be executed. The timestamp is based off the latency measurements.
+ * This examples also uses the NetworkMonitor, but instead of interacting with it through HTTP. It
+ * puts the other program inside the same federate. It gets the latency mesaurements from the output
+ * ports of the NetworkMonitor. Federate 0, periodically sends a command string to the other
+ * federates together with a timestamp at which the command should be executed. The timestamp is
+ * based off the latency measurements.
  */
 target C {
-  coordination: decentralized,
+  coordination: decentralized
 }
 
 import NetworkMonitor from "lib/NetworkMonitor.lf"
@@ -29,12 +30,12 @@ preamble {=
   #endif
 =}
 
-reactor NodeSync(bank_index:int = 0, width:int = 1) {
-  input [width] probe_in: LatencyMessage
-  output [width] probe_out: LatencyMessage
+reactor NodeSync(bank_index: int = 0, width: int = 1) {
+  input[width] probe_in: LatencyMessage
+  output[width] probe_out: LatencyMessage
 
-  output [width] cmd_out: CommandMessage
-  input [width] cmd_in: CommandMessage
+  output[width] cmd_out: CommandMessage
+  input[width] cmd_in: CommandMessage
 
   monitor = new NetworkMonitor(bank_index=bank_index, width=width)
   monitor.probe_out -> probe_out
@@ -68,7 +69,7 @@ reactor NodeSync(bank_index:int = 0, width:int = 1) {
       }
     }
   =}
-  
+
   reaction(cmd_in) -> a_cmd {=
     for (int i = 0; i < self->width; i++) {
       if (cmd_in[i]->is_present) {
@@ -90,7 +91,7 @@ reactor NodeSync(bank_index:int = 0, width:int = 1) {
 }
 
 federated reactor(num_nodes: int = 2) {
-  m = new [num_nodes] NodeSync(width=num_nodes)
+  m = new[num_nodes] NodeSync(width=num_nodes)
   m.probe_out ~> interleaved(m.probe_in)
   m.cmd_out ~> interleaved(m.cmd_in)
 }

@@ -15,9 +15,9 @@ preamble {=
  * and prevents overdrafts. If the deposits and/or widthdrawls at any time result in a negative bank
  * balance, then one or more of the transactions will be rejected and a penalty will be imposed. In
  * particular, if one input is a withdrawl and the other is a deposit, then the withdrawl will be
- * rejected. If both inputs are withdrawls, then if local alone does not result in a negative balance,
- * then the local withdrawl will be accepted and the remote withdrawl rejected. If local is rejected, then
- * remote may be allowed if it does not result in a negative balance.
+ * rejected. If both inputs are withdrawls, then if local alone does not result in a negative
+ * balance, then the local withdrawl will be accepted and the remote withdrawl rejected. If local is
+ * rejected, then remote may be allowed if it does not result in a negative balance.
  */
 reactor AccountManagerWithRecovery(true_balance_period: time = 10 s, min_spacing = 1 s) {
   preamble {=
@@ -66,8 +66,8 @@ reactor AccountManagerWithRecovery(true_balance_period: time = 10 s, min_spacing
   input local: int
   input remote: int
   input true_balance: int
-  output out: int  // Remaining balance.
-  output actual: int // The actual change made (cash dispensed or deposited)
+  output out: int     // Remaining balance.
+  output actual: int  // The actual change made (cash dispensed or deposited)
 
   state balance: int = 0
   state local_transactions: transaction_t* = {= NULL =}

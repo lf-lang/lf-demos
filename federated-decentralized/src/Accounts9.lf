@@ -6,13 +6,17 @@ target C {
 import WebSocketServerString from "lib/WebSocketServerString.lf"
 import Account from "lib/Account.lf"
 
-reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_message_period: time = 1 s) {
+reactor Server(
+    hostport: int = 8080,
+    initial_file: string = {= NULL =},
+    null_message_period: time = 1 s) {
   input in1: int
   input in2: int
   output received: int
   timer t(0, null_message_period)
-  w = new WebSocketServerString(hostport = hostport, initial_file = initial_file)
-  reaction (w.received, t) -> received {=
+  w = new WebSocketServerString(hostport=hostport, initial_file=initial_file)
+
+  reaction(w.received, t) -> received {=
     if (w.received->is_present) {
       lf_set(received, atoi(w.received->value));
     } else {
@@ -20,6 +24,7 @@ reactor Server(hostport: int = 8080, initial_file: string = {= NULL =}, null_mes
       lf_set(received, 0);
     }
   =}
+
   reaction(in1, in2) -> w.in_dynamic {=
     // Give preference to acknowledging the deposit quickly.
     int amount;
@@ -81,16 +86,8 @@ reactor QuickDeposit {
 }
 
 federated reactor {
-  w1 = new Server(
-    hostport = 8080,
-    null_message_period = 5 s,
-    initial_file = "Bank1.html"
-  )
-  w2 = new Server(
-    hostport = 8081,
-    null_message_period = 5 s,
-    initial_file = "Bank2.html"
-  )
+  w1 = new Server(hostport=8080, null_message_period = 5 s, initial_file="Bank1.html")
+  w2 = new Server(hostport=8081, null_message_period = 5 s, initial_file="Bank2.html")
   @maxwait(forever)
   a1 = new Account()
   @maxwait(forever)

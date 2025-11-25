@@ -1,11 +1,11 @@
-/* A library reactor for sending and receiving latency measurement probes.
- * Latency requests are sent in response to a timer firing. When responses are
- * received they are buffered and handled later by another timer.
+/**
+ * A library reactor for sending and receiving latency measurement probes. Latency requests are sent
+ * in response to a timer firing. When responses are received they are buffered and handled later by
+ * another timer.
  *
- * The latency to itself is always 0. If a response is received after the
- * `worst_case_latency` parameter, the latency is set to `FOREVER`.
-*/
-
+ * The latency to itself is always 0. If a response is received after the `worst_case_latency`
+ * parameter, the latency is set to `FOREVER`.
+ */
 target C {
   files: ["network_latency_probe.h"]
 }
@@ -16,17 +16,21 @@ preamble {=
 =}
 
 reactor NetworkLatencyProbe(
-  bank_index:int = 0,
-  send_requests: bool = true, // Whether this reactor should send requests, or just respond to them.
-  request_interval: time = 2 sec,  // Time between sending requests.
-  worst_case_latency: time = 1 sec, // Maximum time to wait for a response. If a response is later the latency is assumed to be FOREVER.
-  width: int=1,  // Number of peers (including itself) to send requests to.
-  debug: bool=false // Enable debug printing
-) {
-  output [width] msg_out: LatencyMessage
-  input [width] msg_in: LatencyMessage
+    bank_index: int = 0,
+    // Whether this reactor should send requests, or just respond to them.
+    send_requests: bool = true,
+    // Time between sending requests.
+    request_interval: time = 2 sec,
+    // Maximum time to wait for a response. If a response is later the latency is assumed to be FOREVER.
+    worst_case_latency: time = 1 sec,
+    // Number of peers (including itself) to send requests to.
+    width: int = 1,
+    // Enable debug printing
+    debug: bool = false) {
+  output[width] msg_out: LatencyMessage
+  input[width] msg_in: LatencyMessage
 
-  output [width] latencies: interval_t
+  output[width] latencies: interval_t
 
   timer t_request(0, request_interval)
   timer t_output(worst_case_latency, request_interval)
@@ -56,7 +60,7 @@ reactor NetworkLatencyProbe(
 
     self->cnt++;
     instant_t timestamp = lf_time_physical();
-    
+
     if (self->debug) {
       lf_print("Sending request %d with timestamp: " PRINTF_TIME, self->cnt, timestamp);
     }
@@ -74,7 +78,6 @@ reactor NetworkLatencyProbe(
       memcpy(&self->last_sent_request[i], &msg_out[i]->value, sizeof(LatencyMessage));
     }
   =}
-
 
   // FIXME: If this reaction, however unlikely, gets triggered logically simultanou to
   // the t_request reaction, they will both try to write to the same msg_out array.
@@ -132,4 +135,3 @@ reactor NetworkLatencyProbe(
     free(self->last_response);
   =}
 }
-
