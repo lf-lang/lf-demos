@@ -7,11 +7,7 @@ target C {
   keepalive: true
 }
 
-<<<<<<< HEAD
 reactor Node(period: time = 1 s) {
-=======
-reactor Node (period: time = 1 s) {
->>>>>>> main
   input in: int
   output out: int
   timer t(0, period)
@@ -30,11 +26,7 @@ reactor Node (period: time = 1 s) {
   // Handle STP violations just like normal inputs.
   reaction(in) {=
     measure();
-<<<<<<< HEAD
   =} tardy
-=======
-  =} tardy // Handle STP violations just like normal inputs.
->>>>>>> main
 }
 
 federated reactor at lf-mac.eecs.berkeley.edu {

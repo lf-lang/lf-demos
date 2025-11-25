@@ -9,11 +9,7 @@ target C {
 
 import WebSocketServerString from "lib/WebSocketServerString.lf"
 
-<<<<<<< HEAD
 reactor Node(period: time = 1 s) {
-=======
-reactor Node (period: time = 1 s) {
->>>>>>> main
   preamble {=
     #include <string.h> // For strlen()
   =}
