@@ -8,8 +8,8 @@ reactor LlmA {
   state ready = False
 
   input  user_in
-  physical action done 
-  physical action notify_ready
+  logical action done 
+  logical action notify_ready
   output answer
   output ready_out
 
@@ -64,8 +64,8 @@ reactor LlmB {
   state ready = False
 
   input  user_in
-  physical action done 
-  physical action notify_ready
+  logical action done 
+  logical action notify_ready
   output answer
   output ready_out
 
@@ -126,8 +126,8 @@ reactor Judge {
   input  ready_b
   state  a_ready = False
   state  b_ready = False
-  physical action line 
-  physical action tick 
+  logical action line 
+  logical action tick 
   logical  action timeout(60 sec)
   output ask
   input  llma
