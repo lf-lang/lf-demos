@@ -45,3 +45,4 @@ def agent2(q: str) -> str:
         out = model.generate(**inputs, **GEN)
     gen = out[0, inputs["input_ids"].shape[1]:]
     return tokenizer.decode(gen, skip_special_tokens=True).strip()
+
