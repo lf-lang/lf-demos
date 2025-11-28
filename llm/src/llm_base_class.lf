@@ -8,7 +8,7 @@ reactor LlmA {
   state out_buffer = ""
 
   input user_in
-  physical action done   
+  logical action done   
   output answer         
 
 
@@ -41,7 +41,7 @@ reactor LlmB {
   input user_in
   output answer
 
-  physical action done
+  logical action done
 
   reaction(user_in)->done{=
     if self.running:
@@ -81,7 +81,7 @@ reactor Judge {
   state physical_base_time = 0
   state winner = ""
 
-  physical action line
+  logical action line
   logical action timeout(60 sec)
 
   reaction(startup) -> line {=
