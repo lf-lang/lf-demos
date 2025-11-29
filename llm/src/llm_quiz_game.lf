@@ -1,15 +1,8 @@
-target Python { keepalive: true, files: ["agents/llm.py"] }
-
+target Python { keepalive: true }
 
 import LlmA from "llm_base_class.lf"
 import LlmB from "llm_base_class.lf"
 import Judge from "llm_base_class.lf"
-
-preamble {=
-  import threading
-  import time
-  from llm import agent1, agent2
-=}
 
 main reactor {
   llma_response = new LlmA()

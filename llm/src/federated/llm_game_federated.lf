@@ -1,30 +1,18 @@
-### llm.py file needs to be in the same directory
-target Python { keepalive: true, files: ["../../../src/agents/llm_a.py", "../../../src/agents/llm_b.py" ] } #"llm_b.py"
+target Python { keepalive: true }
 
-import LlmA, LlmB, Judge from "llm_base_class_federate.lf"
+import LlmA, LlmB, Judge from "llm_base_class_federate_in.lf"
 
-preamble {=
-  import threading
-  import time 
-  from llm_a import agent1
-  from llm_b_m2 import agent2
-=}
-
-
-federated reactor llm_game_federated at 10.218.100.95 {
-       
-  j    = new Judge() 
-  llma = new LlmA() 
-  llmb = new LlmB() 
+federated reactor llm_game_federated at 10.218.100.78 {
+  j    = new Judge()
+  llma = new LlmA()
+  llmb = new LlmB()
 
   j.ask -> llma.user_in
   j.ask -> llmb.user_in
+
   llma.answer -> j.llma
   llmb.answer -> j.llmb
 
   llma.ready_out -> j.ready_a
   llmb.ready_out -> j.ready_b
-
 }
-
-

@@ -1,52 +1,96 @@
-target Python 
+target Python { keepalive: true }
 
-### Reactor for calling agent 1 
+preamble {=
+  import threading
+  import torch
+  from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+=}
+
 reactor LlmA {
   state th
   state running = False
   state out_buffer = ""
   state ready = False
 
-  input  user_in
-  logical action done 
-  logical action notify_ready
+  input user_in
   output answer
   output ready_out
+  logical action done
 
-  reaction(startup) -> notify_ready {=
-    import os, sys, importlib.util, threading, traceback
-    act = notify_ready
-    def _load():
-      try:
-        here = os.path.dirname(__file__)
-        if here not in sys.path: sys.path.insert(0, here)
-        from llm_a import agent1
-        act.schedule(1)
-      except Exception as e:
-        print("[LlmA] Preload failed:", e, flush=True)
-        traceback.print_exc()
-    threading.Thread(target=_load, daemon=True).start()
-  =}
+  reaction(startup) -> ready_out {=
+    print("[LlmA] Loading 7B", flush=True)
 
-  reaction(notify_ready) -> ready_out {=
+    self.has_cuda = torch.cuda.is_available()
+    self.dtype = torch.bfloat16 if self.has_cuda else torch.float32
+
+    model_id = "meta-llama/Llama-2-7b-chat-hf"
+
+    self.tokenizer_a = AutoTokenizer.from_pretrained(model_id, use_fast=True)
+    if self.tokenizer_a.pad_token_id is None:
+      self.tokenizer_a.pad_token = self.tokenizer_a.eos_token
+
+    common_a = dict(
+      device_map="auto" if self.has_cuda else None,
+      torch_dtype=self.dtype,
+      low_cpu_mem_usage=True,
+    )
+
+    try:
+      import bitsandbytes as bnb
+      common_a["quantization_config"] = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=self.dtype,
+      )
+    except Exception:
+      pass
+
+    self.model_a = AutoModelForCausalLM.from_pretrained(model_id, **common_a)
+    self.model_a.eval()
+
+    self.GEN_A = dict(
+      max_new_tokens=24,
+      do_sample=False,
+      temperature=0.1,
+      eos_token_id=self.tokenizer_a.eos_token_id,
+      pad_token_id=self.tokenizer_a.pad_token_id,
+    )
+
+    print("[LlmA] Ready.", flush=True)
     self.ready = True
     ready_out.set(True)
   =}
 
   reaction(user_in) -> done {=
-    import threading
-    if not self.ready: return
-    if self.running: return
+    if not self.ready:
+      return
+    if self.running:
+      return
     self.running = True
-    q = user_in.value
-    from llm_a import agent1
-    def agentA():
+    query = user_in.value
+
+    def worker():
       try:
-        self.out_buffer = agent1(q)
+        prompt = f"You are a concise Q&A assistant.\n\n{query}\n"
+        inputs = self.tokenizer_a(prompt, return_tensors="pt")
+        if self.has_cuda:
+          inputs = {k: v.to("cuda") for k, v in inputs.items()}
+        with torch.no_grad():
+          out = self.model_a.generate(**inputs, **self.GEN_A)
+        plen = inputs["input_ids"].shape[1]
+        txt = self.tokenizer_a.decode(out[0][plen:], skip_special_tokens=True)
+        t = txt.strip()
+        for sep in ["\n", ". ", "  "]:
+          idx = t.find(sep)
+          if idx > 0:
+            t = t[:idx]
+            break
+        self.out_buffer = t.strip().strip(":").strip()
       finally:
-        try: done.schedule(5)
-        except Exception as e: print("[LlmA] schedule failed:", e, flush=True)
-    self.th = threading.Thread(target=agentA, daemon=True)
+        done.schedule(0)
+
+    self.th = threading.Thread(target=worker, daemon=True)
     self.th.start()
   =}
 
@@ -56,53 +100,91 @@ reactor LlmA {
   =}
 }
 
-### Reactor for calling agent 2 
 reactor LlmB {
   state th
   state running = False
   state out_buffer = ""
   state ready = False
 
-  input  user_in
-  logical action done 
-  logical action notify_ready
+  input user_in
   output answer
   output ready_out
+  logical action done
 
-  reaction(startup) -> notify_ready {=
-    import os, sys, importlib.util, threading, traceback
-    act = notify_ready
-    def _load():
-      try:
-        here = os.path.dirname(__file__)
-        if here not in sys.path: sys.path.insert(0, here)
-        from llm_b import agent2
-        act.schedule(1)
-      except Exception as e:
-        print("[LlmB] Preload failed:", e, flush=True)
-        traceback.print_exc()
-    threading.Thread(target=_load, daemon=True).start()
-  =}
+  reaction(startup) -> ready_out {=
+    print("[LlmB] Loading 70B", flush=True)
 
-  reaction(notify_ready) -> ready_out {=
+    self.has_cuda = torch.cuda.is_available()
+    self.dtype = torch.bfloat16 if self.has_cuda else torch.float32
+
+    model_id = "meta-llama/Llama-2-70b-chat-hf"
+
+    self.tokenizer_b = AutoTokenizer.from_pretrained(model_id, use_fast=True)
+    if self.tokenizer_b.pad_token_id is None:
+      self.tokenizer_b.pad_token = self.tokenizer_b.eos_token
+
+    common_b = dict(
+      device_map="auto" if self.has_cuda else None,
+      torch_dtype=self.dtype,
+      low_cpu_mem_usage=True,
+    )
+
+    try:
+      import bitsandbytes as bnb
+      common_b["quantization_config"] = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_compute_dtype=self.dtype,
+      )
+    except Exception:
+      pass
+
+    self.model_b = AutoModelForCausalLM.from_pretrained(model_id, **common_b)
+    self.model_b.eval()
+
+    self.GEN_B = dict(
+      max_new_tokens=24,
+      do_sample=False,
+      temperature=0.1,
+      eos_token_id=self.tokenizer_b.eos_token_id,
+      pad_token_id=self.tokenizer_b.pad_token_id,
+    )
+
+    print("[LlmB] Ready.", flush=True)
     self.ready = True
     ready_out.set(True)
   =}
 
   reaction(user_in) -> done {=
-    import threading
-    if not self.ready: return
-    if self.running: return
+    if not self.ready:
+      return
+    if self.running:
+      return
     self.running = True
-    q = user_in.value
-    from llm_b import agent2
-    def agentB():
+    query = user_in.value
+
+    def worker():
       try:
-        self.out_buffer = agent2(q)
+        prompt = f"You are a concise Q&A assistant.\n\n{query}\n"
+        inputs = self.tokenizer_b(prompt, return_tensors="pt")
+        if self.has_cuda:
+          inputs = {k: v.to("cuda") for k, v in inputs.items()}
+        with torch.no_grad():
+          out = self.model_b.generate(**inputs, **self.GEN_B)
+        plen = inputs["input_ids"].shape[1]
+        txt = self.tokenizer_b.decode(out[0][plen:], skip_special_tokens=True)
+        t = txt.strip()
+        for sep in ["\n", ". ", "  "]:
+          idx = t.find(sep)
+          if idx > 0:
+            t = t[:idx]
+            break
+        self.out_buffer = t.strip().strip(":").strip()
       finally:
-        try: done.schedule(5)
-        except Exception as e: print("[LlmB] schedule failed:", e, flush=True)
-    self.th = threading.Thread(target=agentB, daemon=True)
+        done.schedule(0)
+
+    self.th = threading.Thread(target=worker, daemon=True)
     self.th.start()
   =}
 
@@ -111,7 +193,6 @@ reactor LlmB {
     answer.set(self.out_buffer)
   =}
 }
-###Judge reactor to determine which agent responds first
 
 reactor Judge {
   state th
@@ -122,66 +203,59 @@ reactor Judge {
   state waiting = False
   state logical_base_time = 0
   state physical_base_time = 0
-  input  ready_a
-  input  ready_b
-  state  a_ready = False
-  state  b_ready = False
-  logical action line 
-  logical action tick 
-  logical  action timeout(60 sec)
+  state a_ready = False
+  state b_ready = False
+
+  input ready_a
+  input ready_b
+  input llma
+  input llmb
+
   output ask
-  input  llma
-  input  llmb
   output quit
 
+  logical action line
+  logical action tick
+  physical action timeout(60 sec)
+
   reaction(startup) {=
-    print("[Judge] Waiting for models to load", flush=True)
+    print("[Judge] Waiting for models", flush=True)
   =}
 
-  reaction(ready_a)->line {=
+  reaction(ready_a) -> line {=
     self.a_ready = True
     if self.a_ready and self.b_ready and not self.reader_started:
-      import sys, threading
+      import threading
       def reader():
         while not self.terminate:
           s = input("Enter the quiz question (or 'quit')\n")
           if s == "" or s.lower().strip() == "quit":
             self.eof = True
-            try: line.schedule(0)
-            except Exception as e: print("[Judge] schedule EOF failed:", e, flush=True)
+            line.schedule(0)
             break
-          else:
-            self.buffer = s
-            try: line.schedule(1)
-            except Exception as e:
-              print("[Judge] schedule line failed:", e, flush=True)
-              break
+          self.buffer = s
+          line.schedule(1)
       self.reader_started = True
-      print("[Judge] Models ready. You can ask questions now.", flush=True)
+      print("[Judge] Ready", flush=True)
       self.th = threading.Thread(target=reader, daemon=True)
       self.th.start()
   =}
 
-  reaction(ready_b)->line {=
+  reaction(ready_b) -> line {=
     self.b_ready = True
     if self.a_ready and self.b_ready and not self.reader_started:
-      import sys, threading
+      import threading
       def reader():
         while not self.terminate:
           s = input("Enter the quiz question (or 'quit')\n")
           if s == "" or s.lower().strip() == "quit":
             self.eof = True
-            try: line.schedule(0)
-            except Exception as e: print("[Judge] schedule EOF failed:", e, flush=True)
+            line.schedule(0)
             break
-          else:
-            self.buffer = s
-            try: line.schedule(1)
-            except Exception as e:
-              print("[Judge] schedule line failed:", e, flush=True)
-              break
+          self.buffer = s
+          line.schedule(1)
       self.reader_started = True
-      print("[Judge] Models ready. You can ask questions now.", flush=True)
+      print("[Judge] Ready", flush=True)
       self.th = threading.Thread(target=reader, daemon=True)
       self.th.start()
   =}
@@ -192,7 +266,7 @@ reactor Judge {
       environment().sync_shutdown()
     else:
       self.waiting = True
-      self.logical_base_time  = lf.time.logical_elapsed()
+      self.logical_base_time = lf.time.logical_elapsed()
       self.physical_base_time = lf.time.physical_elapsed()
       timeout.schedule(0)
       print(f"\n\n\nQuery: {self.buffer}\n", flush=True)
@@ -205,35 +279,38 @@ reactor Judge {
   =}
 
   reaction(llma) {=
-    if not self.waiting: return
+    if not self.waiting:
+      return
     self.waiting = False
-    logical_now  = lf.time.logical_elapsed()
-    physical_now = lf.time.physical_elapsed()
-    logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
-    physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-    print(f" Winner: LLM-A | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
+    ln = lf.time.logical_elapsed()
+    pn = lf.time.physical_elapsed()
+    lm = int((ln - self.logical_base_time)/1000000)
+    pm = int((pn - self.physical_base_time)/1000000)
+    print(f"Winner: LLM-A | logical {lm} ms | physical {pm} ms", flush=True)
     print(f"{llma.value}", flush=True)
   =}
 
   reaction(llmb) {=
-    if not self.waiting: return
+    if not self.waiting:
+      return
     self.waiting = False
-    logical_now  = lf.time.logical_elapsed()
-    physical_now = lf.time.physical_elapsed()
-    logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
-    physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-    print(f"Winner: LLM-B | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
+    ln = lf.time.logical_elapsed()
+    pn = lf.time.physical_elapsed()
+    lm = int((ln - self.logical_base_time)/1000000)
+    pm = int((pn - self.physical_base_time)/1000000)
+    print(f"Winner: LLM-B | logical {lm} ms | physical {pm} ms", flush=True)
     print(f"{llmb.value}", flush=True)
   =}
 
   reaction(timeout) {=
-    if not self.waiting: return
+    if not self.waiting:
+      return
     self.waiting = False
-    logical_now  = lf.time.logical_elapsed()
-    physical_now = lf.time.physical_elapsed()
-    logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
-    physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-    print(f"TIMEOUT (60 s) | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
+    ln = lf.time.logical_elapsed()
+    pn = lf.time.physical_elapsed()
+    lm = int((ln - self.logical_base_time)/1000000)
+    pm = int((pn - self.physical_base_time)/1000000)
+    print(f"TIMEOUT (60 s) | logical {lm} ms | physical {pm} ms", flush=True)
   =}
 
   reaction(shutdown) {=

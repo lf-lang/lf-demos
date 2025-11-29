@@ -1,28 +1,106 @@
-target Python 
+target Python { keepalive: true }
 
+preamble {=
+  import threading
+  import torch
+  from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+=}
 
-### Reactor for calling agent 1 
 reactor LlmA {
   state th
   state running = False
   state out_buffer = ""
 
-  input user_in
-  logical action done   
-  output answer         
+  input  user_in
+  output answer
+  logical action done
 
+  preamble {=
+    print("[LlmA] Loading Llama-2-7B chat model", flush=True)
+    has_cuda = torch.cuda.is_available()
+    dtype    = torch.bfloat16 if has_cuda else torch.float32
+
+    model_id_a = "meta-llama/Llama-2-7b-chat-hf"
+
+    tokenizer_a = AutoTokenizer.from_pretrained(model_id_a, use_fast=True)
+    if tokenizer_a.pad_token_id is None:
+        tokenizer_a.pad_token = tokenizer_a.eos_token
+
+    common_a = dict(
+        device_map="auto" if has_cuda else None,
+        torch_dtype=dtype,
+        low_cpu_mem_usage=True,
+    )
+
+    try:
+        import bitsandbytes as bnb  # noqa: F401
+        quant_a = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=dtype,
+        )
+        common_a["quantization_config"] = quant_a
+    except Exception:
+        quant_a = None
+
+    # Model as class attribute
+    model_a = AutoModelForCausalLM.from_pretrained(model_id_a, **common_a)
+    model_a.eval()
+
+    generation_a = dict(
+        max_new_tokens=24,
+        do_sample=False,
+        temperature=0.1,
+        eos_token_id=tokenizer_a.eos_token_id,
+        pad_token_id=tokenizer_a.pad_token_id,
+    )
+
+    def run_llm_a(self, q: str) -> str:
+        """Bound method: uses class-level model/tokenizer."""
+        cls = type(self)
+        prompt = f"You are a concise Q&A assistant.\n\n{q}\n"
+
+        tok   = cls.tokenizer_a
+        model = cls.model_a
+        generation_a = cls.generation_a
+        has_cuda = cls.has_cuda
+
+        inputs = tok(prompt, return_tensors="pt")
+        if has_cuda:
+            inputs = {k: v.to("cuda") for k, v in inputs.items()}
+
+        with torch.no_grad():
+            out = model.generate(**inputs, **generation_a)
+
+        prompt_len = inputs["input_ids"].shape[1]
+        result = tok.decode(out[0][prompt_len:], skip_special_tokens=True)
+
+        # Make it one-line-ish
+        t = result.strip()
+        for sep in ["\n", ". ", "  "]:
+            idx = t.find(sep)
+            if idx > 0:
+                t = t[:idx]
+                break
+        return t.strip().strip(":").strip()
+
+    print("[LlmA] 7B model ready.", flush=True)
+  =}
 
   reaction(user_in) -> done {=
     if self.running:
       return
     self.running = True
     query = user_in.value
-    def agentA():
+
+    def worker():
       try:
-        self.out_buffer = agent1(query)   
+        self.out_buffer = self.run_llm_a(query)
       finally:
-        done.schedule(1)              
-    self.th = threading.Thread(target=agentA, daemon=True)
+        done.schedule(0)
+
+    self.th = threading.Thread(target=worker, daemon=True)
     self.th.start()
   =}
 
@@ -33,38 +111,109 @@ reactor LlmA {
 }
 
 
-### Reactor for calling agent 2 
 reactor LlmB {
   state th
   state running = False
   state out_buffer = ""
-  input user_in
-  output answer
 
+  input  user_in
+  output answer
   logical action done
 
-  reaction(user_in)->done{=
+  preamble {=
+    print("[LlmB] Loading Llama-2-70B chat model...", flush=True)
+
+    has_cuda = torch.cuda.is_available()
+    dtype    = torch.bfloat16 if has_cuda else torch.float32
+
+    model_id_b = "meta-llama/Llama-2-70b-chat-hf"
+
+    tokenizer_b = AutoTokenizer.from_pretrained(model_id_b, use_fast=True)
+    if tokenizer_b.pad_token_id is None:
+        tokenizer_b.pad_token = tokenizer_b.eos_token
+
+    common_b = dict(
+        device_map="auto" if has_cuda else None,
+        torch_dtype=dtype,
+        low_cpu_mem_usage=True,
+    )
+
+    try:
+        import bitsandbytes as bnb  # noqa: F401
+        quant_b = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=dtype,
+        )
+        common_b["quantization_config"] = quant_b
+    except Exception:
+        quant_b = None
+
+    model_b = AutoModelForCausalLM.from_pretrained(model_id_b, **common_b)
+    model_b.eval()
+
+    generation_b = dict(
+        max_new_tokens=24,
+        do_sample=False,
+        temperature=0.1,
+        eos_token_id=tokenizer_b.eos_token_id,
+        pad_token_id=tokenizer_b.pad_token_id,
+    )
+
+    def run_llm_b(self, q: str) -> str:
+        cls = type(self)
+        prompt = f"You are a concise Q&A assistant.\n\n{q}\n"
+
+        tok   = cls.tokenizer_b
+        model = cls.model_b
+        generation_b = cls.generation_b
+        has_cuda = cls.has_cuda
+
+        inputs = tok(prompt, return_tensors="pt")
+        if has_cuda:
+            inputs = {k: v.to("cuda") for k, v in inputs.items()}
+
+        with torch.no_grad():
+            out = model.generate(**inputs, **generation_b)
+
+        prompt_len = inputs["input_ids"].shape[1]
+        result = tok.decode(out[0][prompt_len:], skip_special_tokens=True)
+
+        t = result.strip()
+        for sep in ["\n", ". ", "  "]:
+            idx = t.find(sep)
+            if idx > 0:
+                t = t[:idx]
+                break
+        return t.strip().strip(":").strip()
+
+    print("[LlmB] 70B model ready.", flush=True)
+  =}
+
+  reaction(user_in) -> done {=
     if self.running:
       return
     self.running = True
     query = user_in.value
-    def agentB():
+
+    def worker():
       try:
-        self.out_buffer = agent2(query)
+        self.out_buffer = self.run_llm_b(query)
       finally:
-        done.schedule(1)
-    self.th = threading.Thread(target=agentB, daemon=True)
+        done.schedule(0)
+
+    self.th = threading.Thread(target=worker, daemon=True)
     self.th.start()
   =}
 
-  reaction(done)->answer{=
+  reaction(done) -> answer {=
     self.running = False
     answer.set(self.out_buffer)
   =}
-
 }
 
-### Reactor for Judge
+
 reactor Judge {
   state th
   state terminate = False
@@ -73,8 +222,8 @@ reactor Judge {
 
   output ask
   output quit
-  input llma
-  input llmb
+  input  llma
+  input  llmb
 
   state waiting = False
   state logical_base_time = 0
@@ -99,6 +248,7 @@ reactor Judge {
         else:
           self.buffer = s
           line.schedule(1)
+
     self.th = threading.Thread(target=reader, daemon=True)
     self.th.start()
   =}
@@ -113,8 +263,8 @@ reactor Judge {
       self.logical_base_time  = lf.time.logical_elapsed()
       self.physical_base_time = lf.time.physical_elapsed()
       timeout.schedule(0)
-      print(f"\n\n\nQuery: {self.buffer}\n")
-      print("waiting...\n")
+      print(f"\n\n\nQuery: {self.buffer}\n", flush=True)
+      print("waiting...\n", flush=True)
       ask.set(self.buffer)
   =}
 
@@ -126,8 +276,8 @@ reactor Judge {
     physical_now = lf.time.physical_elapsed()
     logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
     physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-    print(f" Winner: LLM-A | logical {logical_ms} ms | physical {physical_ms} ms")
-    print(f"{llma.value}")
+    print(f" Winner: LLM-A | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
+    print(f"{llma.value}", flush=True)
   =}
 
   reaction(llmb) {=
@@ -138,8 +288,8 @@ reactor Judge {
     physical_now = lf.time.physical_elapsed()
     logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
     physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-    print(f"Winner: LLM-B | logical {logical_ms} ms | physical {physical_ms} ms")
-    print(f"{llmb.value}")
+    print(f"Winner: LLM-B | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
+    print(f"{llmb.value}", flush=True)
   =}
 
   reaction(timeout) {=
@@ -150,7 +300,7 @@ reactor Judge {
     physical_now = lf.time.physical_elapsed()
     logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
     physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-    print(f"TIMEOUT (60 s) | logical {logical_ms} ms | physical {physical_ms} ms")
+    print(f"TIMEOUT (60 s) | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
   =}
 
   reaction(shutdown) {=
