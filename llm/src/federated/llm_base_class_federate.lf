@@ -1,3 +1,26 @@
+/**
+ * This program implements a simple LF-based quiz between two LLM agents
+ * and a Judge reactor that measures latency.
+ *
+ * LlmA loads a Llama-2-7B chat model.
+ * LlmB loads a Llama-2-70B chat model.
+ * Both use optional 4-bit quantization (bitsandbytes) and, run on a CUDA GPU.
+ *
+ * Each Llm reactor:
+ *  Initializes its tokenizer and model once in the preamble.
+ *  Spawns a background thread per query to call model.generate().
+ *  Cleans the decoded text into a short, one-line answer.
+ *  Uses a logical action (done) to notify that the answer is ready and sets its output port.
+ *
+ * The Judge reactor:
+ *   Reads user queries.
+ *   Broadcasts each query on ask to both LlmA and LlmB.
+ *   Reads logical and physical timestamps when the question is issued.
+ *   Declares the winner as the LLM that responds first and prints its latency and answer.
+ *   Triggers a 60 s timeout if neither LLM responds, and terminates the program when the user types "quit".
+ *
+ * @author Deeksha Prahlad 
+ */
 target Python { keepalive: true }
 
 preamble {=

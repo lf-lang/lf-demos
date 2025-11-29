@@ -1,6 +1,6 @@
 target Python { keepalive: true }
 
-import LlmA, LlmB, Judge from "llm_base_class_federate_in.lf"
+import LlmA, LlmB, Judge from "llm_base_class_federate.lf"
 
 federated reactor llm_game_federated at 10.218.100.78 {
   j    = new Judge()
@@ -16,3 +16,4 @@ federated reactor llm_game_federated at 10.218.100.78 {
   llma.ready_out -> j.ready_a
   llmb.ready_out -> j.ready_b
 }
+
