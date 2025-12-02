@@ -119,7 +119,6 @@ Example output printed on the terminal:
 --------------------------------------------------
 ******* Using Python version: 3.12.3
 [LlmA] Loading Llama-2-7B chat model
-`torch_dtype` is deprecated! Use `dtype` instead!
 Loading checkpoint shards: 100%|| 2/2 [00:09<00:00,  4.61s/it]
 [LlmA] 7B model ready.
 [LlmB] Loading Llama-2-70B chat model
