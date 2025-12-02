@@ -75,12 +75,13 @@ To ensure optimal performance, the following hardware and software requirements 
 
 ### Hardware Requirements   
 The demo was tested with the following hardware setup.
-- **GPU**: NVIDIA RTX A6000  
+- **GPU**: NVIDIA RTX A6000, NVIDIA RTX PRO 6000 Blackwell
 
 ### Software Requirements  
 - **OS**: Linux
-- **Python**   
-- **CUDA Version**: 12.8  
+- **Python**: 3.12.3+   
+- **CUDA Version**: 12.8+
+- **Lingua Franca**: 0.10.1 
 
 Make sure the environment is properly configured to use CUDA for optimal GPU acceleration.
 
