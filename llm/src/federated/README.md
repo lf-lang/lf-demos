@@ -126,21 +126,28 @@ In the fourth terminal run:
 
 The system will ask for entering the quiz question which is to be obtained from the keyboard input.
 
-Example output printed on the terminal:
+Example output printed on the terminal where federate__j is running:
  
 <pre>
 
 --------------------------------------------------
+******* Using Python version: 3.12.3
 ---- System clock resolution: 1 nsec
----- Start execution on Fri Sep 19 10:46:31 2025 ---- plus 772215861 nanoseconds
-Enter the quiz question
-What is the capital of South Korea?
-Query: What is the capital of South Korea?
+---- Start execution on Tue Dec 02 14:31:36 2025 ---- plus 537640559 nanoseconds
+Fed 0 (j): Connected to 10.218.100.78:15045.
+Fed 0 (j): Starting timestamp is: 1764711104560384525.
+[Judge] Waiting for models
+[Judge] Ready
+Enter the quiz question (or 'quit')
+What is the opposite of tall?
+Enter the quiz question (or 'quit')
+
+Query: What is the opposite of tall?
 
 waiting...
 
-Winner: LLM-B | logical 1184 ms | physical 1184 ms
-Answer: Seoul.
+Winner: LLM-A | logical 0 ms | physical 378 ms
+A: The opposite of tall is short.
 --------------------------------------------------
 
 </pre>
