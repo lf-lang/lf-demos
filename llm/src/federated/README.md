@@ -110,22 +110,18 @@ cd fed-gen/llm_game_federated/
 In the first terminal run:
 ```
 ./bin/RTI -n 3
-
 ```
 In the second terminal run:
 ```
 ./bin/federate__j
-
 ```
 In the third terminal run:
 ```
 ./bin/federate__llma
-
 ```
 In the fourth terminal run:
 ```
 ./bin/federate__llmb
-
 ```
 
 The system will ask for entering the quiz question which is to be obtained from the keyboard input.
