@@ -1,5 +1,4 @@
-llm/fed-gen/
-llm/src-gen/
-llm/include/
-llm/bin
-**__pycache__**
+**/src-gen/
+**/fed-gen/
+**/build/
+**/bin/

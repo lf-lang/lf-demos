@@ -1,3 +1,7 @@
+/**
+ * This version puts two probes on the local machine and sends all measurements to a web socket.
+ * point your browser to http://localhost:8080 and http://localhost:8081 to see the measurements.
+ */
 target C {
   coordination: decentralized,
   keepalive: true
@@ -5,7 +9,7 @@ target C {
 
 import WebSocketServerString from "lib/WebSocketServerString.lf"
 
-reactor Node (period: time = 1 s, STA: time = 0) {
+reactor Node(period: time = 1 s) {
   preamble {=
     #include <string.h> // For strlen()
   =}
@@ -29,7 +33,7 @@ reactor Node (period: time = 1 s, STA: time = 0) {
   reaction(in) -> lag {=
     char* message = measure();
     lf_set_array(lag, message, strlen(message));
-  =} STAA(0) {=
+  =} tardy {=
     // Handle STP violations just like normal inputs.
     char* message = measure();
     lf_set_array(lag, message, strlen(message));
@@ -38,13 +42,11 @@ reactor Node (period: time = 1 s, STA: time = 0) {
 
 federated reactor {
   w1 = new WebSocketServerString(
-    hostport = 8080,
-    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Probe1.html" =}
-  )
+      hostport=8080,
+      initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Probe1.html" =})
   w2 = new WebSocketServerString(
-    hostport = 8081,
-    initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Probe2.html" =}
-  )
+      hostport=8081,
+      initial_file = {= LF_SOURCE_DIRECTORY LF_FILE_SEPARATOR "Probe2.html" =})
   p1 = new Node()
   p2 = new Node()
 

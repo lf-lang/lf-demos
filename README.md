@@ -4,5 +4,6 @@ This repo contains artifacts such as scripts and sample programs used in demonst
 ## Demos
 
 * [federated-decentralized](federated-decentralized/README.md)
+* [network-monitor](network-monitor/README.md)
 * [simulation](simulation/README.md)
 * [mujoco](mujoco/README.md)

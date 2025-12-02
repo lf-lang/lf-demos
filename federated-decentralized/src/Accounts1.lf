@@ -5,7 +5,7 @@ target C {
 
 import IntWebSocketServer from "lib/IntWebSocketServer.lf"
 
-reactor ACIDAccountManager(STA: time = 0) {
+reactor ACIDAccountManager {
   input in1: int
   input in2: int
   output out: int
@@ -26,12 +26,8 @@ reactor ACIDAccountManager(STA: time = 0) {
 }
 
 federated reactor {
-  w1 = new IntWebSocketServer(
-      hostport=8080,
-      initial_file = "Bank1.html")
-  w2 = new IntWebSocketServer(
-      hostport=8081,
-      initial_file = "Bank2.html")
+  w1 = new IntWebSocketServer(hostport=8080, initial_file="Bank1.html")
+  w2 = new IntWebSocketServer(hostport=8081, initial_file="Bank2.html")
   a1 = new ACIDAccountManager()
   a2 = new ACIDAccountManager()
 

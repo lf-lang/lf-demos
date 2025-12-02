@@ -6,11 +6,12 @@ target C {
 import IntWebSocketServer from "lib/IntWebSocketServer.lf"
 import AccountManagerWithRecovery from "lib/AccountManagerWithRecovery.lf"
 
-reactor Balance(STA: time = forever) {
+reactor Balance {
   input tr1: int
   input tr2: int
   output balance: int
   state b: int = 0
+
   reaction(tr1, tr2) -> balance {=
     if (tr1->is_present) self->b += tr1->value;
     if (tr2->is_present) self->b += tr2->value;
@@ -20,18 +21,16 @@ reactor Balance(STA: time = forever) {
 }
 
 federated reactor(true_balance_period: time = 10 s) {
-  w1 = new IntWebSocketServer(
-    hostport = 8080,
-    initial_file = "Bank1.html"
-  )
-  w2 = new IntWebSocketServer(
-    hostport = 8081,
-    initial_file = "Bank2.html"
-  )
-  a1 = new AccountManagerWithRecovery(STA = 30 ms, true_balance_period = true_balance_period)
-  a2 = new AccountManagerWithRecovery(STA = 30 ms, true_balance_period = true_balance_period)
+  w1 = new IntWebSocketServer(hostport=8080, initial_file="Bank1.html")
+  w2 = new IntWebSocketServer(hostport=8081, initial_file="Bank2.html")
+  @maxwait(30 ms)
+  a1 = new AccountManagerWithRecovery(true_balance_period=true_balance_period)
+  @maxwait(30 ms)
+  a2 = new AccountManagerWithRecovery(true_balance_period=true_balance_period)
 
+  @maxwait(forever)
   b = new Balance()
+  @maxwait(forever)
   b2 = new Balance()
 
   w1.received -> a1.local

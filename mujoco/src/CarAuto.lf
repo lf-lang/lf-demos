@@ -1,12 +1,12 @@
 /**
  * @file Basic car driving program for MuJoCo.
  *
- * This is the same as the MuJoCoCarDemo example in the mujoco-c library, which you need to install
- * first using `lingo build` in this directory.
+ * This is the same as the MuJoCoCarAutoDemo example in the mujoco-c library, which you need to
+ * install first using `lingo build` in this directory.
  *
- * This program uses the [MuJoCoCar](lib/MuJoCoCar.lf) reactor to build a simple interactive
- * simulation. The arrow keys can be used to drive the car. The _backspace_ or _delete_ key will
- * reset the simulation to its initial conditions, and the `q` or `Q` key will quit the simulation.
+ * This MuJoCoCarAuto reactor to build a simple interactive simulation. The arrow keys can be used
+ * to drive the car. The _backspace_ or _delete_ key will reset the simulation to its initial
+ * conditions, and the `q` or `Q` key will quit the simulation.
  *
  * See [README.md](../README.md) for prerequisites and installation instructions.
  *
@@ -16,25 +16,17 @@ target C {
   keepalive: true  // Because of physical action.
 }
 
-import MuJoCoCar from <mujoco-c/MuJoCoCar.lf>
+import MuJoCoCarAuto from <mujoco-c/MuJoCoCarAuto.lf>
 
-main reactor(
-    period: time = 33333333 ns,
-    speed_sensitivity: double = 0.05,
-    turn_sensitivity: double = 0.01) {
-  timer t(0, period)
+main reactor(speed_sensitivity: double = 0.05, turn_sensitivity: double = 0.01) {
   state speed: double = 0
   state turn: double = 0
 
-  m = new MuJoCoCar()
+  m = new MuJoCoCarAuto()
 
   reaction(startup) {=
     lf_print("*** Backspace to reset.");
     lf_print("*** Type q to quit.\n");
-  =}
-
-  reaction(t) -> m.advance {=
-    lf_set(m.advance, true);
   =}
 
   reaction(m.key) -> m.restart, m.forward, m.turn {=
@@ -63,9 +55,10 @@ main reactor(
     }
   =}
 
-  reaction(m.right_force, m.left_force) {=
+  reaction(m.right_force, m.left_force, m.tick) {=
+    printf("\r" PRINTF_TIME, lf_time_logical_elapsed());
     if (m.left_force->is_present) {
-      printf("\r<--- %f", m.left_force->value);
+      printf("\t<--- %f", m.left_force->value);
     }
     if (m.right_force->is_present) {
       printf("\t %f --->", m.right_force->value);

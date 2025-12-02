@@ -32,3 +32,4 @@ The [mujoco.cmake](src/include/mujoco.cmake) file in the [mujoco-c library](http
 ## Demos
 
 * [Car.lf](src/Car.lf): A simple car simulation driven with the arrow keys and providing sensor outputs.
+* [CarAuto.lf](src/CarAuto.lf): A version of the car simulation where the simulator advances automatically.

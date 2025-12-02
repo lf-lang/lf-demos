@@ -1,4 +1,5 @@
- target C
+target C
+
 reactor PrintMessage {
   input message: char*
 
