@@ -117,15 +117,22 @@ Example output printed on the terminal:
 <pre>
 
 --------------------------------------------------
+******* Using Python version: 3.12.3
+[LlmA] Loading Llama-2-7B chat model
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards: 100%|| 2/2 [00:09<00:00,  4.61s/it]
+[LlmA] 7B model ready.
+[LlmB] Loading Llama-2-70B chat model
+Loading checkpoint shards: 100%|| 15/15 [01:36<00:00,  6.40s/it]
+[LlmB] 70B model ready.
 ---- System clock resolution: 1 nsec
----- Start execution on Fri Sep 19 10:46:31 2025 ---- plus 772215861 nanoseconds
+---- Start execution on Tue Dec 02 13:57:35 2025 ---- plus 38464851 nanoseconds
 Enter the quiz question
 What is the capital of South Korea?
+Enter the quiz question
 Query: What is the capital of South Korea?
-
 waiting...
-
-Winner: LLM-B | logical 1184 ms | physical 1184 ms
+Winner: LLM-B | logical 0 ms | physical 2521 ms
 Answer: Seoul.
 --------------------------------------------------
 
