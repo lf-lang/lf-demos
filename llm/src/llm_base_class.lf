@@ -273,7 +273,7 @@ reactor Judge {
   state phys_b = -1
 
   physical action line
-  physical action timeout(60 sec)
+  physical action timeout(2 sec)
 
   reaction(startup) -> line {=
     def reader():
