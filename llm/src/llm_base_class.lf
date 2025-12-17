@@ -17,7 +17,7 @@
  *   Broadcasts each query on ask to both LlmA and LlmB.
  *   Reads logical and physical timestamps when the question is issued.
  *   Declares the winner as the LLM that responds first and prints its latency and answer.
- *   Triggers a 60 s timeout if neither LLM responds, and terminates the program when the user types "quit".
+ *   Triggers a 2 s timeout if neither LLM responds, and terminates the program when the user types "quit".
  *
  * @author Deeksha Prahlad 
  */
@@ -25,6 +25,7 @@ target Python { keepalive: true }
 
 preamble {=
   import threading
+  import time
   import torch
   from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 =}
@@ -36,10 +37,13 @@ reactor LlmA {
 
   input  user_in
   output answer
-  logical action done
+  physical action done 
 
+  // Load 7B model in preamble (class body)
   preamble {=
     print("[LlmA] Loading Llama-2-7B chat model", flush=True)
+
+   
     has_cuda = torch.cuda.is_available()
     dtype    = torch.bfloat16 if has_cuda else torch.float32
 
@@ -67,7 +71,6 @@ reactor LlmA {
     except Exception:
         quant_a = None
 
-    
     model_a = AutoModelForCausalLM.from_pretrained(model_id_a, **common_a)
     model_a.eval()
 
@@ -80,13 +83,13 @@ reactor LlmA {
     )
 
     def run_llm_a(self, q: str) -> str:
-        """Bound method: uses class-level model/tokenizer."""
+        """Use class-level model/tokenizer loaded above."""
         cls = type(self)
         prompt = f"You are a concise Q&A assistant.\n\n{q}\n"
 
         tok   = cls.tokenizer_a
         model = cls.model_a
-        generation_a = cls.generation_a
+        gen   = cls.generation_a
         has_cuda = cls.has_cuda
 
         inputs = tok(prompt, return_tensors="pt")
@@ -94,12 +97,11 @@ reactor LlmA {
             inputs = {k: v.to("cuda") for k, v in inputs.items()}
 
         with torch.no_grad():
-            out = model.generate(**inputs, **generation_a)
+            out = model.generate(**inputs, **gen)
 
         prompt_len = inputs["input_ids"].shape[1]
         result = tok.decode(out[0][prompt_len:], skip_special_tokens=True)
 
-       
         t = result.strip()
         for sep in ["\n", ". ", "  "]:
             idx = t.find(sep)
@@ -119,7 +121,11 @@ reactor LlmA {
 
     def worker():
       try:
-        self.out_buffer = self.run_llm_a(query)
+        start_ns = time.perf_counter_ns()
+        text = self.run_llm_a(query)
+        end_ns = time.perf_counter_ns()
+        phys_ms = int((end_ns - start_ns) / 1_000_000)
+        self.out_buffer = (text, phys_ms)
       finally:
         done.schedule(0)
 
@@ -134,6 +140,7 @@ reactor LlmA {
 }
 
 
+// global interpreter lock - before python 3.12 no global interpreter lock
 reactor LlmB {
   state th
   state running = False
@@ -141,8 +148,9 @@ reactor LlmB {
 
   input  user_in
   output answer
-  logical action done
+  physical action done
 
+  // Load 70B model in preamble (class body)
   preamble {=
     print("[LlmB] Loading Llama-2-70B chat model", flush=True)
 
@@ -185,12 +193,13 @@ reactor LlmB {
     )
 
     def run_llm_b(self, q: str) -> str:
+        """Use class-level model/tokenizer loaded above."""
         cls = type(self)
         prompt = f"You are a concise Q&A assistant.\n\n{q}\n"
 
         tok   = cls.tokenizer_b
         model = cls.model_b
-        generation_b = cls.generation_b
+        gen   = cls.generation_b
         has_cuda = cls.has_cuda
 
         inputs = tok(prompt, return_tensors="pt")
@@ -198,7 +207,7 @@ reactor LlmB {
             inputs = {k: v.to("cuda") for k, v in inputs.items()}
 
         with torch.no_grad():
-            out = model.generate(**inputs, **generation_b)
+            out = model.generate(**inputs, **gen)
 
         prompt_len = inputs["input_ids"].shape[1]
         result = tok.decode(out[0][prompt_len:], skip_special_tokens=True)
@@ -222,7 +231,11 @@ reactor LlmB {
 
     def worker():
       try:
-        self.out_buffer = self.run_llm_b(query)
+        start_ns = time.perf_counter_ns()
+        text = self.run_llm_b(query)
+        end_ns = time.perf_counter_ns()
+        phys_ms = int((end_ns - start_ns) / 1_000_000)
+        self.out_buffer = (text, phys_ms)
       finally:
         done.schedule(0)
 
@@ -251,10 +264,16 @@ reactor Judge {
   state waiting = False
   state logical_base_time = 0
   state physical_base_time = 0
-  state winner = ""
 
-  logical action line
-  logical action timeout(60 sec)
+  state got_a = False
+  state got_b = False
+  state text_a = ""
+  state text_b = ""
+  state phys_a = -1
+  state phys_b = -1
+
+  physical action line
+  physical action timeout(60 sec)
 
   reaction(startup) -> line {=
     def reader():
@@ -282,48 +301,99 @@ reactor Judge {
       environment().sync_shutdown()
     else:
       self.waiting = True
-      self.winner = ""
+
+      self.got_a = False
+      self.got_b = False
+      self.text_a = ""
+      self.text_b = ""
+      self.phys_a = -1
+      self.phys_b = -1
+
       self.logical_base_time  = lf.time.logical_elapsed()
       self.physical_base_time = lf.time.physical_elapsed()
-      timeout.schedule(0)
+
+      
+      timeout.schedule(2_000_000_000)
+
       print(f"\n\n\nQuery: {self.buffer}\n", flush=True)
       print("waiting...\n", flush=True)
       ask.set(self.buffer)
   =}
 
-  reaction(llma) {=
+  reaction(llma, llmb) {=
     if not self.waiting:
       return
-    self.waiting = False
-    logical_now  = lf.time.logical_elapsed()
-    physical_now = lf.time.physical_elapsed()
-    logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
-    physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-    print(f" Winner: LLM-A | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
-    print(f"{llma.value}", flush=True)
-  =}
 
-  reaction(llmb) {=
-    if not self.waiting:
+    if llma.is_present:
+      a_text, a_ms = llma.value
+      self.text_a = a_text
+      self.phys_a = a_ms
+      self.got_a = True
+
+    if llmb.is_present:
+      b_text, b_ms = llmb.value
+      self.text_b = b_text
+      self.phys_b = b_ms
+      self.got_b = True
+
+    
+    if not (self.got_a and self.got_b):
       return
+
     self.waiting = False
-    logical_now  = lf.time.logical_elapsed()
-    physical_now = lf.time.physical_elapsed()
-    logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
-    physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-    print(f"Winner: LLM-B | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
-    print(f"{llmb.value}", flush=True)
+
+    if self.phys_a > 2000 and self.phys_b > 2000:
+      logical_now   = lf.time.logical_elapsed()
+      physical_now  = lf.time.physical_elapsed()
+      logical_ms    = int((logical_now  - self.logical_base_time)  / 1000000)
+      judge_phys_ms = int((physical_now - self.physical_base_time) / 1000000)
+
+    winner = None
+    answer = None
+    chosen_ms = None
+
+    if self.phys_a < self.phys_b:
+      winner = "LLM-A"
+      answer = self.text_a
+      chosen_ms = self.phys_a
+    elif self.phys_b < self.phys_a:
+      winner = "LLM-B"
+      answer = self.text_b
+      chosen_ms = self.phys_b
+    else:
+      winner = "LLM-A and LLM-B"
+      answer = self.text_a
+      chosen_ms = self.phys_a
+
+    logical_now   = lf.time.logical_elapsed()
+    physical_now  = lf.time.physical_elapsed()
+    logical_ms    = int((logical_now  - self.logical_base_time)  / 1000000)
+    judge_phys_ms = int((physical_now - self.physical_base_time) / 1000000)
+
+    print(f"LLM-A inference time: {self.phys_a} ms | LLM-B inference time: {self.phys_b} ms", flush=True)
+    print(
+      f"Winner: {winner} | Chosen inference time {chosen_ms} ms | "
+      f"Judge logical {logical_ms} ms | Judge physical {judge_phys_ms} ms",
+      flush=True,
+    )
+    print(f"{answer}", flush=True)
   =}
 
   reaction(timeout) {=
     if not self.waiting:
       return
+
     self.waiting = False
-    logical_now  = lf.time.logical_elapsed()
-    physical_now = lf.time.physical_elapsed()
-    logical_ms  = int((logical_now  - self.logical_base_time)  / 1000000)
-    physical_ms = int((physical_now - self.physical_base_time) / 1000000)
-    print(f"TIMEOUT (60 s) | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
+
+    logical_now   = lf.time.logical_elapsed()
+    physical_now  = lf.time.physical_elapsed()
+    logical_ms    = int((logical_now  - self.logical_base_time)  / 1000000)
+    physical_ms   = int((physical_now - self.physical_base_time) / 1000000)
+
+    print(
+      f"TIMEOUT (2 s) | logical {logical_ms} ms | physical {physical_ms} ms",
+      flush=True,
+    )
   =}
 
   reaction(shutdown) {=

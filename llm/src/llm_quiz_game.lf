@@ -7,7 +7,7 @@
  *  This main reactor composes the LLM reactors and Judge into one coordinated system.
  *  All timing, concurrency, and winner-determination logic reside in the sub-reactors in "llm_base_class.lf"
  */
-target Python { keepalive: true }
+target Python { keepalive: true, DNET: false }
 
 import LlmA from "llm_base_class.lf"
 import LlmB from "llm_base_class.lf"
@@ -20,6 +20,7 @@ main reactor {
 
   j.ask -> llma_response.user_in
   j.ask -> llmb_response.user_in
+  
   llma_response.answer -> j.llma
   llmb_response.answer -> j.llmb
 }
