@@ -273,7 +273,7 @@ reactor Judge {
   state phys_b = -1
 
   physical action line
-  physical action timeout(2 sec)
+  physical action timeout(5 sec)
 
   reaction(startup) -> line {=
     def reader():
@@ -312,8 +312,7 @@ reactor Judge {
       self.logical_base_time  = lf.time.logical_elapsed()
       self.physical_base_time = lf.time.physical_elapsed()
 
-      
-      timeout.schedule(2_000_000_000)
+      timeout.schedule(5_000_000_000)
 
       print(f"\n\n\nQuery: {self.buffer}\n", flush=True)
       print("waiting...\n", flush=True)
@@ -322,6 +321,16 @@ reactor Judge {
 
   reaction(llma, llmb) {=
     if not self.waiting:
+      return
+
+    physical_now = lf.time.physical_elapsed()
+    elapsed_ms = int((physical_now - self.physical_base_time) / 1_000_000)
+
+    if elapsed_ms >= 5000:
+      self.waiting = False
+      logical_now = lf.time.logical_elapsed()
+      logical_ms = int((logical_now - self.logical_base_time) / 1_000_000)
+      print(f"TIMEOUT (5 s) | logical {logical_ms} ms | physical {elapsed_ms} ms", flush=True)
       return
 
     if llma.is_present:
@@ -336,17 +345,24 @@ reactor Judge {
       self.phys_b = b_ms
       self.got_b = True
 
-    
     if not (self.got_a and self.got_b):
       return
 
-    self.waiting = False
-
-    if self.phys_a > 2000 and self.phys_b > 2000:
+    if self.phys_a > 5000 and self.phys_b > 5000:
+      self.waiting = False
       logical_now   = lf.time.logical_elapsed()
       physical_now  = lf.time.physical_elapsed()
-      logical_ms    = int((logical_now  - self.logical_base_time)  / 1000000)
-      judge_phys_ms = int((physical_now - self.physical_base_time) / 1000000)
+      logical_ms    = int((logical_now  - self.logical_base_time)  / 1_000_000)
+      judge_phys_ms = int((physical_now - self.physical_base_time) / 1_000_000)
+
+      print(
+        f"TIMEOUT (both inference > 2 s) | LLM-A {self.phys_a} ms | LLM-B {self.phys_b} ms | "
+        f"Judge logical {logical_ms} ms | Judge physical {judge_phys_ms} ms",
+        flush=True,
+      )
+      return
+
+    self.waiting = False
 
     winner = None
     answer = None
@@ -367,8 +383,8 @@ reactor Judge {
 
     logical_now   = lf.time.logical_elapsed()
     physical_now  = lf.time.physical_elapsed()
-    logical_ms    = int((logical_now  - self.logical_base_time)  / 1000000)
-    judge_phys_ms = int((physical_now - self.physical_base_time) / 1000000)
+    logical_ms    = int((logical_now  - self.logical_base_time)  / 1_000_000)
+    judge_phys_ms = int((physical_now - self.physical_base_time) / 1_000_000)
 
     print(f"LLM-A inference time: {self.phys_a} ms | LLM-B inference time: {self.phys_b} ms", flush=True)
     print(
@@ -387,11 +403,11 @@ reactor Judge {
 
     logical_now   = lf.time.logical_elapsed()
     physical_now  = lf.time.physical_elapsed()
-    logical_ms    = int((logical_now  - self.logical_base_time)  / 1000000)
-    physical_ms   = int((physical_now - self.physical_base_time) / 1000000)
+    logical_ms    = int((logical_now  - self.logical_base_time)  / 1_000_000)
+    physical_ms   = int((physical_now - self.physical_base_time) / 1_000_000)
 
     print(
-      f"TIMEOUT (2 s) | logical {logical_ms} ms | physical {physical_ms} ms",
+      f"TIMEOUT (5 s) | logical {logical_ms} ms | physical {physical_ms} ms",
       flush=True,
     )
   =}
