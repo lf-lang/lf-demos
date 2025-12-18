@@ -1,4 +1,8 @@
-target Python { keepalive: true }
+target Python { 
+  keepalive: true, 
+  // coordination: decentralized,
+  DNET: false 
+}
 
 import LlmA, LlmB, Judge from "llm_base_class_federate.lf"
 
@@ -10,8 +14,11 @@ federated reactor llm_game_federated at 10.218.100.78 {
   j.ask -> llma.user_in
   j.ask -> llmb.user_in
 
-  llma.answer -> j.llma
-  llmb.answer -> j.llmb
+  llma.answer_text -> j.llma_text
+  llma.answer_ms   -> j.llma_ms
+
+  llmb.answer_text -> j.llmb_text
+  llmb.answer_ms   -> j.llmb_ms
 
   llma.ready_out -> j.ready_a
   llmb.ready_out -> j.ready_b

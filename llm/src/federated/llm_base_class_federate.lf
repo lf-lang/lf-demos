@@ -25,6 +25,7 @@ target Python { keepalive: true }
 
 preamble {=
   import threading
+  import time
   import torch
   from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 =}
@@ -32,13 +33,15 @@ preamble {=
 reactor LlmA {
   state th
   state running = False
-  state out_buffer = ""
+  state out_text = ""
+  state out_ms = -1
   state ready = False
 
   input user_in
-  output answer
+  output answer_text
+  output answer_ms
   output ready_out
-  logical action done
+  physical action done
 
   reaction(startup) -> ready_out {=
     print("[LlmA] Loading 7B", flush=True)
@@ -94,45 +97,56 @@ reactor LlmA {
     query = user_in.value
 
     def worker():
+      start_ns = time.perf_counter_ns()
+      text = ""
       try:
         prompt = f"You are a concise Q&A assistant.\n\n{query}\n"
         inputs = self.tokenizer_a(prompt, return_tensors="pt")
         if self.has_cuda:
           inputs = {k: v.to("cuda") for k, v in inputs.items()}
+
         with torch.no_grad():
           out = self.model_a.generate(**inputs, **self.GEN_A)
+
         plen = inputs["input_ids"].shape[1]
         txt = self.tokenizer_a.decode(out[0][plen:], skip_special_tokens=True)
+
         t = txt.strip()
         for sep in ["\n", ". ", "  "]:
           idx = t.find(sep)
           if idx > 0:
             t = t[:idx]
             break
-        self.out_buffer = t.strip().strip(":").strip()
+        text = t.strip().strip(":").strip()
       finally:
+        end_ns = time.perf_counter_ns()
+        self.out_text = text
+        self.out_ms = int((end_ns - start_ns) / 1_000_000)
         done.schedule(0)
 
     self.th = threading.Thread(target=worker, daemon=True)
     self.th.start()
   =}
 
-  reaction(done) -> answer {=
+  reaction(done) -> answer_text, answer_ms {=
     self.running = False
-    answer.set(self.out_buffer)
+    answer_text.set(self.out_text)
+    answer_ms.set(self.out_ms)
   =}
 }
 
 reactor LlmB {
   state th
   state running = False
-  state out_buffer = ""
+  state out_text = ""
+  state out_ms = -1
   state ready = False
 
   input user_in
-  output answer
+  output answer_text
+  output answer_ms
   output ready_out
-  logical action done
+  physical action done
 
   reaction(startup) -> ready_out {=
     print("[LlmB] Loading 70B", flush=True)
@@ -188,32 +202,41 @@ reactor LlmB {
     query = user_in.value
 
     def worker():
+      start_ns = time.perf_counter_ns()
+      text = ""
       try:
         prompt = f"You are a concise Q&A assistant.\n\n{query}\n"
         inputs = self.tokenizer_b(prompt, return_tensors="pt")
         if self.has_cuda:
           inputs = {k: v.to("cuda") for k, v in inputs.items()}
+
         with torch.no_grad():
           out = self.model_b.generate(**inputs, **self.GEN_B)
+
         plen = inputs["input_ids"].shape[1]
         txt = self.tokenizer_b.decode(out[0][plen:], skip_special_tokens=True)
+
         t = txt.strip()
         for sep in ["\n", ". ", "  "]:
           idx = t.find(sep)
           if idx > 0:
             t = t[:idx]
             break
-        self.out_buffer = t.strip().strip(":").strip()
+        text = t.strip().strip(":").strip()
       finally:
+        end_ns = time.perf_counter_ns()
+        self.out_text = text
+        self.out_ms = int((end_ns - start_ns) / 1_000_000)
         done.schedule(0)
 
     self.th = threading.Thread(target=worker, daemon=True)
     self.th.start()
   =}
 
-  reaction(done) -> answer {=
+  reaction(done) -> answer_text, answer_ms {=
     self.running = False
-    answer.set(self.out_buffer)
+    answer_text.set(self.out_text)
+    answer_ms.set(self.out_ms)
   =}
 }
 
@@ -229,17 +252,30 @@ reactor Judge {
   state a_ready = False
   state b_ready = False
 
+  state got_a_text = False
+  state got_a_ms = False
+  state got_b_text = False
+  state got_b_ms = False
+
+  state text_a = ""
+  state text_b = ""
+  state ms_a = -1
+  state ms_b = -1
+
   input ready_a
   input ready_b
-  input llma
-  input llmb
+
+  input llma_text
+  input llma_ms
+  input llmb_text
+  input llmb_ms
 
   output ask
   output quit
 
-  logical action line
-  logical action tick
-  physical action timeout(60 sec)
+  physical action line
+  physical action tick
+  physical action timeout(2 sec)
 
   reaction(startup) {=
     print("[Judge] Waiting for models", flush=True)
@@ -283,57 +319,101 @@ reactor Judge {
       self.th.start()
   =}
 
-  reaction(line) -> tick, ask, timeout, quit {=
+  reaction(line) -> tick, timeout, quit {=
     if self.eof:
       quit.set()
       environment().sync_shutdown()
     else:
       self.waiting = True
-      self.logical_base_time = lf.time.logical_elapsed()
+      self.logical_base_time  = lf.time.logical_elapsed()
       self.physical_base_time = lf.time.physical_elapsed()
-      timeout.schedule(0)
+
+      self.got_a_text = False
+      self.got_a_ms = False
+      self.got_b_text = False
+      self.got_b_ms = False
+
+      self.text_a = ""
+      self.text_b = ""
+      self.ms_a = -1
+      self.ms_b = -1
+
       print(f"\n\n\nQuery: {self.buffer}\n", flush=True)
       print("waiting...\n", flush=True)
-      tick.schedule(5)
+
+      timeout.schedule(2_000_000_000)
+      tick.schedule(0)
   =}
 
   reaction(tick) -> ask {=
     ask.set(self.buffer)
   =}
 
-  reaction(llma) {=
+  reaction(llma_text, llma_ms, llmb_text, llmb_ms) {=
     if not self.waiting:
       return
-    self.waiting = False
-    ln = lf.time.logical_elapsed()
-    pn = lf.time.physical_elapsed()
-    lm = int((ln - self.logical_base_time)/1000000)
-    pm = int((pn - self.physical_base_time)/1000000)
-    print(f"Winner: LLM-A | logical {lm} ms | physical {pm} ms", flush=True)
-    print(f"{llma.value}", flush=True)
-  =}
 
-  reaction(llmb) {=
-    if not self.waiting:
+    if llma_text.is_present:
+      self.text_a = llma_text.value
+      self.got_a_text = True
+    if llma_ms.is_present:
+      self.ms_a = llma_ms.value
+      self.got_a_ms = True
+
+    if llmb_text.is_present:
+      self.text_b = llmb_text.value
+      self.got_b_text = True
+    if llmb_ms.is_present:
+      self.ms_b = llmb_ms.value
+      self.got_b_ms = True
+
+    if not (self.got_a_text and self.got_a_ms and self.got_b_text and self.got_b_ms):
       return
+
     self.waiting = False
-    ln = lf.time.logical_elapsed()
-    pn = lf.time.physical_elapsed()
-    lm = int((ln - self.logical_base_time)/1000000)
-    pm = int((pn - self.physical_base_time)/1000000)
-    print(f"Winner: LLM-B | logical {lm} ms | physical {pm} ms", flush=True)
-    print(f"{llmb.value}", flush=True)
+
+    winner = None
+    answer = None
+    chosen_ms = None
+
+    if self.ms_a < self.ms_b:
+      winner = "LLM-A"
+      answer = self.text_a
+      chosen_ms = self.ms_a
+    elif self.ms_b < self.ms_a:
+      winner = "LLM-B"
+      answer = self.text_b
+      chosen_ms = self.ms_b
+    else:
+      winner = "LLM-A and LLM-B"
+      answer = self.text_a
+      chosen_ms = self.ms_a
+
+    logical_now   = lf.time.logical_elapsed()
+    physical_now  = lf.time.physical_elapsed()
+    logical_ms    = int((logical_now  - self.logical_base_time)  / 1_000_000)
+    judge_phys_ms = int((physical_now - self.physical_base_time) / 1_000_000)
+
+    print(f"LLM-A inference time: {self.ms_a} ms | LLM-B inference time: {self.ms_b} ms", flush=True)
+    print(
+      f"Winner: {winner} | Chosen inference time {chosen_ms} ms | "
+      f"Judge logical {logical_ms} ms | Judge physical {judge_phys_ms} ms",
+      flush=True,
+    )
+    print(f"{answer}", flush=True)
   =}
 
   reaction(timeout) {=
     if not self.waiting:
       return
     self.waiting = False
-    ln = lf.time.logical_elapsed()
-    pn = lf.time.physical_elapsed()
-    lm = int((ln - self.logical_base_time)/1000000)
-    pm = int((pn - self.physical_base_time)/1000000)
-    print(f"TIMEOUT (60 s) | logical {lm} ms | physical {pm} ms", flush=True)
+
+    logical_now  = lf.time.logical_elapsed()
+    physical_now = lf.time.physical_elapsed()
+    logical_ms   = int((logical_now  - self.logical_base_time)  / 1_000_000)
+    physical_ms  = int((physical_now - self.physical_base_time) / 1_000_000)
+
+    print(f"TIMEOUT (2 s) | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
   =}
 
   reaction(shutdown) {=

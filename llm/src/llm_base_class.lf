@@ -39,7 +39,7 @@ reactor LlmA {
   output answer
   physical action done 
 
-  // Load 7B model in preamble (class body)
+  // Load 7B model in preamble 
   preamble {=
     print("[LlmA] Loading Llama-2-7B chat model", flush=True)
 
@@ -150,7 +150,7 @@ reactor LlmB {
   output answer
   physical action done
 
-  // Load 70B model in preamble (class body)
+  // Load 70B model in preamble 
   preamble {=
     print("[LlmB] Loading Llama-2-70B chat model", flush=True)
 
