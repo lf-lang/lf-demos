@@ -5,7 +5,8 @@
  * LlmB : inference for the Llama-2-70B model.
  * Judge: Reads user queries, measures timing, and decides the winner.
  *  This main reactor composes the LLM reactors and Judge into one coordinated system.
- *  All timing, concurrency, and winner-determination logic reside in the sub-reactors in "llm_base_class.lf"
+ *  All timing and winner-determination logic reside in the sub-reactors in "llm_base_class.lf"
+ * @author Deeksha Prahlad and Hokeun Kim
  */
 target Python { keepalive: true, DNET: false }
 
