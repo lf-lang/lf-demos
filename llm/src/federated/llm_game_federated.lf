@@ -1,8 +1,23 @@
+/**
+ * federated LF reactor that connects three independently defined federates:
+ *
+ * LlmA federate: inference using Llama-2-7B model.
+ * LlmB federate: inference using Llama-2-70B model.
+ * Judge federate: Reads user queries, measures timing, and decides the winner.
+ *  This federate reactor composes the LLM reactors and Judge into one coordinated system.
+ *  All timing and winner-determination logic reside in the sub-reactors in "llm_base_class_federate.lf"
+ * @author Deeksha Prahlad and Dr. Hokeun Kim
+ */
+
 target Python { 
   keepalive: true, 
-  // coordination: decentralized,
-  DNET: false 
+  coordination: centralized,
+  DNET: false ,
+  coordination-options: {
+    advance-message-interval: 10 msec
+  }
 }
+
 
 import LlmA, LlmB, Judge from "llm_base_class_federate.lf"
 

@@ -39,8 +39,9 @@ reactor LlmA {
   output answer
   physical action done 
 
-  // The preamble is loading the LLM model and each llm model from meta is gated and needs request access. 
-  // HuggingFace client login is required
+  // The preamble is loading the LLM model. 
+  // TODO: each llm model from meta is gated and needs request access (See README for more info). 
+  // TODO: HuggingFace client login is required.
   preamble {=
     print("[LlmA] Loading Llama-2-7B chat model", flush=True)
    
@@ -48,17 +49,17 @@ reactor LlmA {
     dtype    = torch.bfloat16 if has_cuda else torch.float32
 
     model_id_a = "meta-llama/Llama-2-7b-chat-hf"
-    #This is a pretrained tokenizer from hugging face
+    #This is a pretrained tokenizer from hugging face.
     tokenizer_a = AutoTokenizer.from_pretrained(model_id_a, use_fast=True)
     if tokenizer_a.pad_token_id is None:
         tokenizer_a.pad_token = tokenizer_a.eos_token
-    #Here we map the device to the GPU 
+    #Here we map the device to the GPU. 
     common_a = dict(
         device_map="auto" if has_cuda else None,
         torch_dtype=dtype,
         low_cpu_mem_usage=True,
     )
-    #The 4 bit quantization will be selected if the device supports it
+    #The 4 bit quantization will be selected if the device supports it.
     try:
         import bitsandbytes as bnb  
         quant_a = BitsAndBytesConfig(
@@ -70,11 +71,12 @@ reactor LlmA {
         common_a["quantization_config"] = quant_a
     except Exception:
         quant_a = None
-    #Here we load the model and map it to the device
+    
+    #Here we load the model and map it to the device.
     model_a = AutoModelForCausalLM.from_pretrained(model_id_a, **common_a)
     model_a.eval()
     
-    #Text-generation module 
+    #Text-generation module. 
     generation_a = dict(
         max_new_tokens=24,
         do_sample=False,
@@ -151,8 +153,9 @@ reactor LlmB {
   output answer
   physical action done
 
-  // The preamble is loading the LLM model and each llm model from meta is gated and needs request access. 
-  // HuggingFace client login is required
+  // The preamble is loading the LLM model. 
+  // TODO: each llm model from meta is gated and needs request access (See README for more info). 
+  // TODO: HuggingFace client login is required.
   preamble {=
     print("[LlmB] Loading Llama-2-70B chat model", flush=True)
 
@@ -160,18 +163,18 @@ reactor LlmB {
     dtype    = torch.bfloat16 if has_cuda else torch.float32
 
     model_id_b = "meta-llama/Llama-2-70b-chat-hf"
-    #This is a pretrained tokenizer from hugging face
+    #This is a pretrained tokenizer from hugging face.
     tokenizer_b = AutoTokenizer.from_pretrained(model_id_b, use_fast=True)
     if tokenizer_b.pad_token_id is None:
         tokenizer_b.pad_token = tokenizer_b.eos_token
-     #Here we map the device to the GPU 
+    #Here we map the device to the GPU.
     common_b = dict(
         device_map="auto" if has_cuda else None,
         torch_dtype=dtype,
         low_cpu_mem_usage=True,
     )
 
-    #The 4 bit quantization will be selected if the device supports it
+    #The 4 bit quantization will be selected if the device supports it.
     try:
         import bitsandbytes as bnb  # noqa: F401
         quant_b = BitsAndBytesConfig(
@@ -184,11 +187,11 @@ reactor LlmB {
     except Exception:
         quant_b = None
 
-    #Here we load the model and map it to the device
+    #Here we load the model and map it to the device.
     model_b = AutoModelForCausalLM.from_pretrained(model_id_b, **common_b)
     model_b.eval()
     
-    #Text-generation module 
+    #Text-generation module.
     generation_b = dict(
         max_new_tokens=24,
         do_sample=False,
@@ -198,7 +201,6 @@ reactor LlmB {
 
     #model prompt and calling the model to generate, then post-process the output.
     def run_llm_b(self, q: str) -> str:
-        """Use class-level model/tokenizer loaded above."""
         cls = type(self)
         prompt = f"You are a concise Q&A assistant.\n\n{q}\n"
 
@@ -247,7 +249,7 @@ reactor LlmB {
     self.th = threading.Thread(target=worker, daemon=True)
     self.th.start()
   =}
-  //This reaction sets the output buffer
+  //This reaction sets the output buffer.
   reaction(done) -> answer {=
     self.running = False
     answer.set(self.out_buffer)
