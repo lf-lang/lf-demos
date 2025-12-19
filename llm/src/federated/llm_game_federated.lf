@@ -6,7 +6,8 @@ target Python {
 
 import LlmA, LlmB, Judge from "llm_base_class_federate.lf"
 
-federated reactor llm_game_federated at 10.218.100.78 {
+// TODO: Change the following `localhost` to the network address of the RTI.
+federated reactor llm_game_federated at localhost {
   j    = new Judge()
   llma = new LlmA()
   llmb = new LlmB()
