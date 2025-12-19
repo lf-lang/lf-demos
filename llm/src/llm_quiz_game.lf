@@ -6,7 +6,7 @@
  * Judge: Reads user queries, measures timing, and decides the winner.
  *  This main reactor composes the LLM reactors and Judge into one coordinated system.
  *  All timing and winner-determination logic reside in the sub-reactors in "llm_base_class.lf"
- * @author Deeksha Prahlad and Hokeun Kim
+ * @author Deeksha Prahlad and Dr. Hokeun Kim
  */
 target Python { keepalive: true, DNET: false }
 
