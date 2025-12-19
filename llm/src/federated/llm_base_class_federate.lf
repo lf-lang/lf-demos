@@ -19,7 +19,7 @@
  *   Declares the winner as the LLM that responds first and prints its latency and answer.
  *   Triggers a 5 s timeout if neither LLM responds, and terminates the program when the user types "quit".
  *
- * @author Deeksha Prahlad and Dr. Hokeun Kim
+ * @author Deeksha Prahlad and Hokeun Kim
  */
 target Python { keepalive: true }
 
