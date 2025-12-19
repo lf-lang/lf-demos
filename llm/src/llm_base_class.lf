@@ -323,15 +323,15 @@ reactor Judge {
     if not self.waiting:
       return
 
-    physical_now = lf.time.physical_elapsed()
-    elapsed_ms = int((physical_now - self.physical_base_time) / 1_000_000)
+    # physical_now = lf.time.physical_elapsed()
+    # elapsed_ms = int((physical_now - self.physical_base_time) / 1_000_000)
 
-    if elapsed_ms >= 5000:
-      self.waiting = False
-      logical_now = lf.time.logical_elapsed()
-      logical_ms = int((logical_now - self.logical_base_time) / 1_000_000)
-      print(f"TIMEOUT (5 s) | logical {logical_ms} ms | physical {elapsed_ms} ms", flush=True)
-      return
+    # if elapsed_ms >= 5000:
+    #   self.waiting = False
+    #   logical_now = lf.time.logical_elapsed()
+    #   logical_ms = int((logical_now - self.logical_base_time) / 1_000_000)
+    #   print(f"TIMEOUT (5 s) | logical {logical_ms} ms | physical {elapsed_ms} ms", flush=True)
+    #   return
 
     if llma.is_present:
       a_text, a_ms = llma.value
@@ -348,19 +348,19 @@ reactor Judge {
     if not (self.got_a and self.got_b):
       return
 
-    if self.phys_a > 5000 and self.phys_b > 5000:
-      self.waiting = False
-      logical_now   = lf.time.logical_elapsed()
-      physical_now  = lf.time.physical_elapsed()
-      logical_ms    = int((logical_now  - self.logical_base_time)  / 1_000_000)
-      judge_phys_ms = int((physical_now - self.physical_base_time) / 1_000_000)
+    # if self.phys_a > 5000 and self.phys_b > 5000:
+    #   self.waiting = False
+    #   logical_now   = lf.time.logical_elapsed()
+    #   physical_now  = lf.time.physical_elapsed()
+    #   logical_ms    = int((logical_now  - self.logical_base_time)  / 1_000_000)
+    #   judge_phys_ms = int((physical_now - self.physical_base_time) / 1_000_000)
 
-      print(
-        f"TIMEOUT (both inference > 2 s) | LLM-A {self.phys_a} ms | LLM-B {self.phys_b} ms | "
-        f"Judge logical {logical_ms} ms | Judge physical {judge_phys_ms} ms",
-        flush=True,
-      )
-      return
+    #   print(
+    #     f"TIMEOUT | LLM-A {self.phys_a} ms | LLM-B {self.phys_b} ms | "
+    #     f"Judge logical {logical_ms} ms | Judge physical {judge_phys_ms} ms",
+    #     flush=True,
+    #   )
+    #   return
 
     self.waiting = False
 
