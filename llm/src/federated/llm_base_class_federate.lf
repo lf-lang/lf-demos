@@ -258,7 +258,6 @@ reactor Judge {
   state eof = False
   state buffer = ""
   state waiting = False
-  state logical_base_time = 0
   state physical_base_time = 0
   state a_ready = False
   state b_ready = False
@@ -273,6 +272,8 @@ reactor Judge {
   state ms_a = -1
   state ms_b = -1
 
+  state can_prompt
+
   input ready_a
   input ready_b
 
@@ -286,9 +287,12 @@ reactor Judge {
 
   physical action line
   physical action tick
-  physical action timeout(2 sec)
+  physical action timeout(5 sec)
 
   reaction(startup) {=
+    import threading
+    self.can_prompt = threading.Event()
+    self.can_prompt.set()
     print("[Judge] Waiting for models", flush=True)
   =}
 
@@ -300,12 +304,14 @@ reactor Judge {
       import threading
       def reader():
         while not self.eof:
+          self.can_prompt.wait()
           s = input("Enter the quiz question (or 'quit')\n")
           if s == "" or s.lower().strip() == "quit":
             self.eof = True
             line.schedule(0)
             break
           self.buffer = s
+          self.can_prompt.clear()
           line.schedule(1)
       self.reader_started = True
       print("[Judge] Ready", flush=True)
@@ -321,12 +327,14 @@ reactor Judge {
       import threading
       def reader():
         while not self.eof:
+          self.can_prompt.wait()
           s = input("Enter the quiz question (or 'quit')\n")
           if s == "" or s.lower().strip() == "quit":
             self.eof = True
             line.schedule(0)
             break
           self.buffer = s
+          self.can_prompt.clear()
           line.schedule(1)
       self.reader_started = True
       print("[Judge] Ready", flush=True)
@@ -340,7 +348,6 @@ reactor Judge {
       request_stop()
     else:
       self.waiting = True
-      self.logical_base_time  = lf.time.logical_elapsed()
       self.physical_base_time = lf.time.physical_elapsed()
 
       self.got_a_text = False
@@ -359,6 +366,7 @@ reactor Judge {
       timeout.schedule(5_000_000_000)
       tick.schedule(0)
   =}
+
   //This reaction broadcasts the user query to both LLM agents via the ask.
   reaction(tick) -> ask {=
     ask.set(self.buffer)
@@ -405,30 +413,31 @@ reactor Judge {
       answer = self.text_a
       chosen_ms = self.ms_a
 
-    logical_now   = lf.time.logical_elapsed()
     physical_now  = lf.time.physical_elapsed()
-    logical_ms    = int((logical_now  - self.logical_base_time)  / 1_000_000)
     judge_phys_ms = int((physical_now - self.physical_base_time) / 1_000_000)
 
     print(f"LLM-A inference time: {self.ms_a} ms | LLM-B inference time: {self.ms_b} ms", flush=True)
     print(
       f"Winner: {winner} | Chosen inference time {chosen_ms} ms | "
-      f"Judge logical {logical_ms} ms | Judge physical {judge_phys_ms} ms",
+      f"Judge physical time {judge_phys_ms} ms",
       flush=True,
     )
     print(f"{answer}", flush=True)
+
+    self.can_prompt.set()
   =}
+
   //This reaction is triggered when the response timeout expires.
   reaction(timeout) {=
     if not self.waiting:
       return
     self.waiting = False
 
-    logical_now  = lf.time.logical_elapsed()
     physical_now = lf.time.physical_elapsed()
-    logical_ms   = int((logical_now  - self.logical_base_time)  / 1_000_000)
     physical_ms  = int((physical_now - self.physical_base_time) / 1_000_000)
 
-    print(f"TIMEOUT (5 s) | logical {logical_ms} ms | physical {physical_ms} ms", flush=True)
+    print(f"TIMEOUT (5 s)| physical {physical_ms} ms", flush=True)
+
+    self.can_prompt.set()
   =}
 }
