@@ -1,5 +1,5 @@
 # LLM Demo Overview
-This is a quiz-style game between two LLM agents. For each user question typed at the keyboard for the judge, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 5 sec), and prints per-question elapsed logical and physical times. 
+This is a quiz-style game between two LLM agents. For each user question typed at the keyboard for the judge, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 5 sec), and prints per-question elapsed physical time. 
 # Directory Structure
 - [federated](src/federated/) - Directory for federated versions of LLM demos.
 # Pre-requisites 
@@ -98,13 +98,13 @@ Example output printed on the terminal:
 ******* Using Python version: 3.12.3
 [LlmA] Loading Llama-2-7B chat model
 `torch_dtype` is deprecated! Use `dtype` instead!
-Loading checkpoint shards: 100%|| 2/2 [00:10<00:00,  5.09s/it]
+Loading checkpoint shards: 100%|| 2/2 [00:10<00:00,  5.13s/it]
 [LlmA] 7B model ready.
 [LlmB] Loading Llama-2-70B chat model
-Loading checkpoint shards: 100%|| 15/15 [01:38<00:00,  6.59s/it]
+Loading checkpoint shards: 100%|| 15/15 [01:39<00:00,  6.62s/it]
 [LlmB] 70B model ready.
 ---- System clock resolution: 1 nsec
----- Start execution on Fri Dec 19 16:40:26 2025 ---- plus 163710414 nanoseconds
+---- Start execution on Mon Dec 22 15:47:42 2025 ---- plus 210511558 nanoseconds
 Enter the quiz question
 What is the capital of South Korea?
 Enter the quiz question
@@ -113,8 +113,8 @@ Query: What is the capital of South Korea?
 
 waiting...
 
-LLM-A inference time: 1589 ms | LLM-B inference time: 1447 ms
-Winner: LLM-B | Chosen inference time 1447 ms | Judge logical 1590 ms | Judge physical 1590 ms
+LLM-A inference time: 1667 ms | LLM-B inference time: 1523 ms
+Winner: LLM-B | Chosen inference time 1523 ms | Judge physical time 1669 ms
 Answer: Seoul.
 --------------------------------------------------
 </pre>
