@@ -1,5 +1,5 @@
 # LLM Demo (Federated Execution) Overview
-This is a quiz-style game between two LLM agents using federated execution. For each user question asked to the Judge, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 5 sec), and prints per-question elapsed logical and physical times. There are three federates (federate__llma, federate__llmb, federate__j) and an RTI.
+This is a quiz-style game between two LLM agents using federated execution. For each user question asked to the Judge, both agents answer in parallel. The Judge announces whichever answer arrives first (or a timeout if neither responds within 5 sec), and prints per-question elapsed physical times. There are three federates (federate__llma, federate__llmb, federate__j) and an RTI.
 # Pre-requisites 
 For prerequisites and installation instructions, please refer to the [main README for this demo](../../README.md).
 # Files in this directory
