@@ -10,9 +10,7 @@
  */
 target Python { keepalive: true, DNET: false }
 
-import LlmA from "llm_base_class.lf"
-import LlmB from "llm_base_class.lf"
-import Judge from "llm_base_class.lf"
+import LlmA, LlmB, Judge from "LlmBaseClass.lf"
 
 main reactor {
   llma_response = new LlmA()
