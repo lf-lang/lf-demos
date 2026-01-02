@@ -3,25 +3,25 @@ This is a quiz-style game between two LLM agents using federated execution. For 
 # Pre-requisites 
 For prerequisites and installation instructions, please refer to the [main README for this demo](../../README.md).
 # Files in this directory
-  - **`llm_base_class_federate.lf`** - Contains the base reactors LlmA, LlmB and Judge.
-  - **`llm_game_federated.lf`** - Lingua Franca program that defines the quiz game as federated execution.
+  - **`LlmBaseClassFederate.lf`** - Contains the base reactors LlmA, LlmB and Judge.
+  - **`LlmGameFederated.lf`** - Lingua Franca program that defines the quiz game as federated execution.
 # Execution Workflow 
 ### Step 1: 
 To compile this specify the RTI host by specifying an IP address here:
 ```
-federated reactor llm_game_federated at localhost {
+federated reactor LlmGameFederated at localhost {
 }
 ```
-Run the **`llm_game_federated.lf`**.  \
+Run the **`LlmGameFederated.lf`**.  \
 **Note:**  Ensure that you specify the correct file paths. \
 Run the following commands:  
 ```
-lfc src/federated_execution/llm_game_federated.lf
+lfc src/federated/LlmGameFederated.lf
 ```
 ### Step 2: Run the binary file and input the quiz question
 Run the following command:  
 ```
-cd fed-gen/llm_game_federated/
+cd fed-gen/LlmGameFederated/
 ```
 In the first terminal run:
 ```
