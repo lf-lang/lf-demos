@@ -47,7 +47,7 @@ reactor MSPSender(port:string="/dev/ttyACM0") {
     else               printf("MSP: FAILED to open %s\n", self->port);
   =}
 
-  reaction(tx) {=
+  reaction(tx, roll, pitch, yaw, throttle, aux1, aux2) {=
     if (self->fd < 0) return;
     uint16_t rc[16] = {1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000};
     if (roll->is_present)     rc[0] = roll->value;

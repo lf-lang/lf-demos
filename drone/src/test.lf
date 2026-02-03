@@ -1,7 +1,7 @@
 target C   // runs until Ctrl+C
 
 import PyToF from "ToFBridgeC.lf"
-import AvoidPlanner from "avoid_planner.lf"
+import AvoidPlanner from "avoid_planner_modal.lf"
 import MSPSender from "msp_sender.lf"
 
 main reactor test {
