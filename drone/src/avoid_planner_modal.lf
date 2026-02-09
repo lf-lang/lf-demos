@@ -12,6 +12,8 @@ reactor AvoidPlanner {
   input right: double
   input bottom: double
   input top: double
+  // Optional command to initiate landing (present & nonzero -> land)
+  input land: int
 
   output roll: int
   output pitch: int
@@ -51,6 +53,12 @@ reactor AvoidPlanner {
   state hover_ok:int = 0
   state ok_count:int = 0
 
+  // Landing scratch
+  state land_thr:int = 1300
+  state land_touch:int = 0      // consecutive ticks on ground
+  state land_min_thr:int = 1080 // don't drop below this while descending
+  state land_step:int = 6       // throttle decrement per tick (≈300 us/s)
+
   // Stage durations (ticks @ 50 Hz)
   state t_neutral:int = 75
   state t_arm:int     = 100
@@ -65,6 +73,8 @@ reactor AvoidPlanner {
       self->i_h = 0.0;
       self->hover_ok = 0;
       self->ok_count = 0;
+      self->land_thr = 1300;
+      self->land_touch = 0;
       printf("[AvoidPlanner] Neutral\n");
     =}
 
@@ -136,8 +146,11 @@ reactor AvoidPlanner {
       printf("[AvoidPlanner] Cruise\n");
     =}
 
-    reaction(tick, front, left, right, bottom, top)
-             -> roll, pitch, yaw, throttle, aux1, aux2 {=
+    reaction(tick)
+             -> roll, pitch, yaw, throttle, aux1, aux2, reset(Landing) {=
+      // Landing request?
+      int land_req = (land->is_present && land->value != 0) ? 1 : 0;
+
       double f = front->is_present  ? front->value  : NAN;
       double l = left->is_present   ? left->value   : NAN;
       double r = right->is_present  ? right->value  : NAN;
@@ -208,12 +221,63 @@ reactor AvoidPlanner {
         rc_roll = roll_cmd;
       }
 
+      // Apply outputs
       lf_set(roll, rc_roll);
       lf_set(pitch, rc_pitch);
       lf_set(yaw, rc_yaw);
       lf_set(throttle, rc_thr);
       lf_set(aux1, rc_aux1);
       lf_set(aux2, rc_aux2);
+
+      // Transition to Landing if requested
+      if (land_req) {
+        lf_set_mode(Landing);
+        printf("[AvoidPlanner] Cruise -> Landing\n");
+      }
+    =}
+  }
+
+  mode Landing {
+    reaction(reset) {=
+      // Start landing from a safe throttle near hover
+      self->land_thr = (self->thr_base > 1350 ? 1350 : self->thr_base);
+      self->land_touch = 0;
+      printf("[AvoidPlanner] Landing\n");
+    =}
+
+    reaction(tick, bottom)
+             -> roll, pitch, yaw, throttle, aux1, aux2, reset(Neutral) {=
+      double b = bottom->is_present ? bottom->value : NAN;
+
+      // Neutral attitude, keep ANGLE, armed during descent
+      lf_set(roll, 1500);
+      lf_set(pitch, 1500);
+      lf_set(yaw, 1500);
+      lf_set(aux1, 1800);
+      lf_set(aux2, 1800);
+
+      // Ramp down throttle smoothly
+      if (self->land_thr > self->land_min_thr) self->land_thr -= self->land_step;
+
+      // If we see ground close, allow lower throttle to settle
+      if (!isnan(b) && b < 0.20 && self->land_thr > 1100) {
+        self->land_thr = 1100;
+      }
+
+      lf_set(throttle, self->land_thr);
+
+      // Touchdown detection: bottom distance < 8 cm for 0.3 s
+      if (!isnan(b) && b < 0.08) {
+        if (++self->land_touch >= 15) {
+          // Disarm and return to Neutral
+          lf_set(aux1, 1000);
+          lf_set(throttle, 1000);
+          lf_set_mode(Neutral);
+          printf("[AvoidPlanner] Landing -> Neutral (touchdown)\n");
+        }
+      } else {
+        self->land_touch = 0;
+      }
     =}
   }
 }
