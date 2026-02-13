@@ -1,0 +1,61 @@
+target C
+
+preamble {=
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <termios.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#define MSP_SET_RAW_RC 200
+
+static uint8_t cs(uint8_t size, uint8_t cmd, const uint8_t* data){
+  uint8_t s = size ^ cmd; for(int i=0;i<size;i++) s ^= data[i]; return s;
+}
+static int open_serial(const char* dev){
+  int fd = open(dev, O_RDWR | O_NOCTTY | O_NONBLOCK);
+  if (fd < 0) return -1;
+  struct termios tio; memset(&tio,0,sizeof(tio));
+  cfmakeraw(&tio); cfsetspeed(&tio, B115200);
+  tio.c_cflag |= CLOCAL | CREAD; tio.c_cc[VMIN]=0; tio.c_cc[VTIME]=1;
+  if (tcsetattr(fd, TCSANOW, &tio) != 0) { close(fd); return -1; }
+  return fd;
+}
+static int send_rc(int fd, const uint16_t ch[16]){
+  uint8_t payload[32];
+  for (int i=0;i<16;i++){ uint16_t v=ch[i]; if(v<1000)v=1000; if(v>2000)v=2000;
+    payload[2*i] = v & 0xFF; payload[2*i+1] = (v>>8)&0xFF; }
+  uint8_t header[3] = {'$','M','<'}, size=sizeof(payload), cmd=MSP_SET_RAW_RC, c = cs(size,cmd,payload);
+  if (write(fd, header, 3)!=3) return -1;
+  if (write(fd, &size, 1)!=1)  return -1;
+  if (write(fd, &cmd, 1)!=1)   return -1;
+  if (write(fd, payload, size)!=size) return -1;
+  if (write(fd, &c, 1)!=1)     return -1;
+  return 0;
+}
+=}
+
+reactor MSPSender(port:string="/dev/ttyACM0") {
+  input roll:int; input pitch:int; input yaw:int; input throttle:int; input aux1:int; input aux2:int
+  timer tx(0, 10 ms)
+  state fd:int
+
+  reaction(startup) {=
+    self->fd = open_serial(self->port);
+    if (self->fd >= 0) printf("MSP: opened %s\n", self->port);
+    else               printf("MSP: FAILED to open %s\n", self->port);
+  =}
+
+  reaction(tx, roll, pitch, yaw, throttle, aux1, aux2) {=
+    if (self->fd < 0) return;
+    uint16_t rc[16] = {1500,1500,1500,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000,1000};
+    if (roll->is_present)     rc[0] = roll->value;
+    if (pitch->is_present)    rc[1] = pitch->value;
+    if (yaw->is_present)      rc[2] = yaw->value;
+    if (throttle->is_present) rc[3] = throttle->value;
+    if (aux1->is_present)     rc[4] = aux1->value;
+    if (aux2->is_present)     rc[5] = aux2->value;  // ANGLE switch
+    send_rc(self->fd, rc);
+  =}
+}

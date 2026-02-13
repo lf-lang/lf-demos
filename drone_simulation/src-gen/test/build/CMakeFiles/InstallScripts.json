@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/duckie/drone_msp_env/lf-demos/drone_simulation/src-gen/test/build/cmake_install.cmake",
+		"/home/duckie/drone_msp_env/lf-demos/drone_simulation/src-gen/test/build/core/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

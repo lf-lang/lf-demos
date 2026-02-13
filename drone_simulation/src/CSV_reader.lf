@@ -1,0 +1,104 @@
+target C
+
+preamble {=
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+// LF runtime provides this; forward-declare to avoid missing headers.
+void lf_request_stop(void);
+=}
+
+reactor CSV_reader(path:string="tof.csv", period:time=20 ms) {
+  output front: double
+  output bottom: double
+  output left: double
+  output right: double
+  output top: double
+  output step: int
+
+  timer tick(0, period)
+
+  state fp: FILE*
+  state header_done: int = 0
+  state k: int = 0
+
+  reaction(startup) {=
+    self->fp = fopen(self->path, "r");
+    self->header_done = 0;
+    self->k = 0;
+
+    if (!self->fp) {
+      fprintf(stderr, "[CSV_reader] Failed to open %s\n", self->path);
+      lf_request_stop();
+    } else {
+      fprintf(stderr, "[CSV_reader] Replaying %s\n", self->path);
+    }
+  =}
+
+  reaction(shutdown) {=
+    if (self->fp) fclose(self->fp);
+    self->fp = NULL;
+  =}
+
+  reaction(tick) -> front, bottom, left, right, top, step {=
+    if (!self->fp) {
+      fprintf(stderr, "[CSV_reader] No file handle. Stopping.\n");
+      lf_request_stop();
+      return;
+    }
+
+    char line[512];
+
+    // Skip header once
+    if (!self->header_done) {
+      if (!fgets(line, sizeof(line), self->fp)) {
+        fprintf(stderr, "[CSV_reader] Empty file. Stopping.\n");
+        lf_request_stop();
+        return;
+      }
+      self->header_done = 1;
+    }
+
+    // Read next data line
+    if (!fgets(line, sizeof(line), self->fp)) {
+      fprintf(stderr, "[CSV_reader] End of file. Stopping.\n");
+      fclose(self->fp);
+      self->fp = NULL;
+      lf_request_stop();
+      return;
+    }
+
+    // Expected columns:
+    // front_m,bottom_m,left_m,right_m,top_m,obstacle_within_0p20m_direction
+    // Empty fields are allowed (become NAN).
+    double vals[5];
+    for (int i = 0; i < 5; i++) vals[i] = NAN;
+
+    char* p = line;
+    for (int col = 0; col < 5; col++) {
+      char* comma = strchr(p, ',');
+      if (comma) *comma = '\0';
+
+      // Empty string -> keep NAN
+      if (p[0] != '\0' && p[0] != '\n' && p[0] != '\r') {
+        vals[col] = strtod(p, NULL);
+      }
+
+      if (!comma) break;
+      p = comma + 1;
+    }
+
+    // Publish values that exist
+    if (!isnan(vals[0])) lf_set(front,  vals[0]);
+    if (!isnan(vals[1])) lf_set(bottom, vals[1]);
+    if (!isnan(vals[2])) lf_set(left,   vals[2]);
+    if (!isnan(vals[3])) lf_set(right,  vals[3]);
+    if (!isnan(vals[4])) lf_set(top,    vals[4]);
+
+    // Step counter increments per successful row
+    self->k += 1;
+    lf_set(step, self->k);
+  =}
+}
