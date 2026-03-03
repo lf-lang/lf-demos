@@ -1,0 +1,25 @@
+target Python{
+    keepalive: true
+}
+
+preamble{=
+    from src.types.target import Target
+=}
+
+# this reactor stores the latest target given to the controller
+reactor TargetLatch{
+    input target_in
+    output target_out
+
+    state last_target
+
+    reaction(startup){=
+        self.last_target = Target()
+    =}
+
+    reaction(target_in) -> target_out {=
+        assert isinstance(target_in.value, Target)
+        self.last_target = target_in.value
+        target_out.set(self.last_target)
+    =}
+}

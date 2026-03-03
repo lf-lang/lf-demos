@@ -1,0 +1,26 @@
+target Python{
+    keepalive: true
+}
+
+preamble{=
+    import numpy as np
+    from src.types.target import Target
+=}
+
+reactor TargetGenerator{
+    input planning_trigger
+    output generated_target
+
+    state ee_pos
+    state ee_vel
+
+    reaction(startup){=
+        self.ee_pos = np.zeros(3)
+        self.ee_vel = np.zeros(3)
+    =}
+
+    reaction(planning_trigger) -> generated_target{=
+        self.ee_pos = Target(task_pos=np.array([-0.45, 0.15, -0.2]))
+        generated_target.set(self.ee_pos)
+    =}
+}

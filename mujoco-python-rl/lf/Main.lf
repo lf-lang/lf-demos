@@ -1,0 +1,88 @@
+target Python{
+    keepalive: true
+}
+
+import Logger from "analysis/Logger.lf"
+import Plant from "plant/Plant.lf"
+import ObsLatch from "scheduling/ObsLatch.lf"
+import TargetLatch from "scheduling/TargetLatch.lf"
+import PIDJointController from "control/pid/PID.lf"
+import InverseKinematics from "control/kinematics/InverseKinematics.lf"
+import TargetGenerator from "planning/TargetGenerator.lf"
+
+# main reactor for driving the control loop
+main reactor{
+
+    preamble{=
+        import numpy as np
+        targs = np.array([-0.2, -0.2, 0.2])
+        kp = np.array([1.0, 1.0, 1.0])
+        ki = np.array([0.0, 0.0, 0.0])
+        kd = np.array([0.0, 0.0, 0.0])
+        kff = np.array([0.0, 0.0, 0.0])
+        dt = 0.002
+        beta = np.array([0.0, 0.0, 0.0])
+        alpha = np.array([0.0, 0.0, 0.0])
+        u_min = np.array([-1.0, -1.0, -1.0])
+        u_max = np.array([1.0, 1.0, 1.0])
+        kaw = np.array([0.0, 0.0, 0.0])
+    =}
+
+    # physics step rate
+    timer physics_timer(0, 2 msec)
+
+    # control rate
+    timer control_timer(0, 2 msec)
+    
+    # planning rate
+    timer planning_timer(0, 0 msec)
+
+    # create reactors
+    plant = new Plant()
+    controller = new PIDJointController(num_actuators=3)
+    logger = new Logger()
+    obs_latch = new ObsLatch()
+    target_latch = new TargetLatch()
+    ik = new InverseKinematics()
+    tgen = new TargetGenerator()
+
+    state step_count = 0
+    state max_steps = 2000
+
+    # set controller params on startup
+    reaction(startup) -> controller.controller_params {=
+        controller.controller_params.set(Parameters(kp=self.kp, ki=self.ki, kd=self.kd, kff=self.kff, dt=self.dt, beta=self.beta, alpha=self.alpha, u_min=self.u_min, u_max=self.u_max, kaw=self.kaw))
+    =}
+
+    # step the environment at the rate of the physics timer
+    reaction(physics_timer) -> plant.physics_trigger {=
+        controller_steps = self.step_count + 1
+        self.step_count = controller_steps
+
+        plant.physics_trigger.set(True)
+
+        if controller_steps >= self.max_steps:
+            request_stop()
+    =}
+
+    # update the control effort at the rate of the control timer
+    reaction(control_timer) -> controller.control_trigger {=
+        controller.control_trigger.set(True)
+    =}
+
+    # update the control target at the rate of the planning timer
+    reaction(planning_timer) -> tgen.planning_trigger {=
+        tgen.planning_trigger.set(True)
+        #target_latch.target_in.set(Target(j_targs=self.targs))
+    =}
+    
+    # connect input and output ports between reactors
+    plant.env_props -> ik.env_props
+    plant.obs -> obs_latch.obs_in
+    obs_latch.obs_out -> logger.obs
+    obs_latch.obs_out -> controller.joint_states
+    tgen.generated_target -> target_latch.target_in
+    target_latch.target_out -> ik.desired_ee_pos
+    ik.joint_targets -> controller.joint_targets
+    controller.output_effort -> plant.cmd after 0
+}

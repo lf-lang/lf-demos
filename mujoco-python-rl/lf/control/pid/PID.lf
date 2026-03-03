@@ -1,0 +1,72 @@
+target Python{
+    keepalive: true
+}
+
+# the file will define the reactors used for controlling the leg via PID control
+preamble{=
+    from src.types.observation import Observation
+    from src.types.command import Command
+    from src.types.target import Target
+    from src.types.diagnostics import Diagnostics
+    from src.controllers.pid import PID
+    from src.controllers.pid import Parameters
+    import numpy as np
+=}
+
+# this reactor computes the control effort the joints need to exert based on the input params, states, and targets
+reactor PIDJointController(num_actuators=0){
+    input joint_states
+    input joint_targets
+    input controller_params
+    input control_trigger
+    output output_effort
+
+    state last_params
+    state last_error
+    state controller
+    state use_pid
+    state use_ff
+    state use_weighted_error
+    state use_deriv_on_meas
+    state states
+    state targets
+
+    # init PID controller on startup
+    reaction(startup){=
+        self.controller = PID(self.num_actuators)
+        self.last_params = None
+        self.last_error = np.zeros(self.num_actuators)
+        self.use_pid = True
+        self.use_ff = False
+        self.use_weighted_error = False
+        self.use_deriv_on_meas = False
+    =}
+
+    # set controller parameters on receiving a parameters update
+    # without RL, this runs on startup in main
+    # using RL, this will be the action produced by the network
+    reaction(controller_params){=
+        assert isinstance(controller_params.value, Parameters)
+        self.last_params = controller_params.value
+        self.controller.set_params(controller_params.value.kp, 
+                                   controller_params.value.ki,
+                                   controller_params.value.kd,
+                                   controller_params.value.kff,
+                                   controller_params.value.dt,
+                                   controller_params.value.beta,
+                                   controller_params.value.alpha,
+                                   controller_params.value.u_min,
+                                   controller_params.value.u_max,
+                                   controller_params.value.kaw)
+    =}
+
+    # on trigger from the control timer, compute the output effort of the controller to achieve the desired state of the joint space
+    reaction(control_trigger) joint_states, joint_targets -> output_effort {=
+        assert self.last_params is not None
+        assert isinstance(joint_states.value, Observation)
+        assert isinstance(joint_targets.value, Target)
+        effort = self.controller.compute_effort(self.use_pid, self.use_ff, joint_targets.value.j_targs, joint_states.value.q, self.use_weighted_error, self.use_deriv_on_meas)
+        self.last_error = self.controller.error
+        output_effort.set(effort)
+    =}
+}

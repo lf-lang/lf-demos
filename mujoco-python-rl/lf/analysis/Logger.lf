@@ -1,0 +1,74 @@
+target Python {
+    keepalive: true
+}
+
+preamble{=
+    import csv
+    import os
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from src.types.observation import Observation
+=}
+
+# this reactor logs observations of the leg state from each step in the environment
+reactor Logger(log_path = "logs/trajectory.csv",
+               plot_path = "logs/trajectory.png") {
+
+    input obs
+
+    state file
+    state writer
+    state header_written = False
+    state data
+
+    # create file to save log on startup
+    reaction(startup) {=
+        os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
+        self.file = open(self.log_path, "w", newline="")
+        self.writer = csv.writer(self.file)
+        self.data = []
+    =}
+
+    # on receiving an observation, append data to file
+    reaction(obs) {=
+        observation = obs.value
+
+        q = observation.q
+        #qd = observation.qd
+
+        if not self.header_written:
+            header = []
+            header += [f"q{i}" for i in range(len(q))]
+            #header += [f"qd{i}" for i in range(len(qd))]
+            self.writer.writerow(header)
+            self.header_written = True
+
+        row = list(q) #+ list(qd)
+        self.writer.writerow(row)
+
+        # store for plotting
+        self.data.append(row)
+    =}
+
+    # save file and create resulting plot on shutdown
+    reaction(shutdown) {=
+        if self.file:
+            self.file.close()
+
+        if len(self.data) == 0:
+            return
+
+        data_np = np.array(self.data)
+
+        plt.figure()
+        for i in range(data_np.shape[1]):
+            plt.plot(data_np[:, i], label=f"col{i}")
+
+        plt.xlabel("Timestep")
+        plt.ylabel("Value")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(self.plot_path)
+        plt.close()
+    =}
+}

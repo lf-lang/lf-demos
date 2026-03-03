@@ -1,0 +1,29 @@
+target Python{
+    keepalive: true
+}
+
+preamble{=
+    from src.kinematics.ik import InverseKinematics
+    from src.types.target import Target
+=}
+
+reactor InverseKinematics{
+    input desired_ee_pos
+    input env_props
+    output joint_targets
+
+    state ik_solver
+    state joint_positions
+    state converged
+
+    reaction(env_props) {=
+        self.ik_solver = InverseKinematics(env_props.value)
+    =}
+
+    reaction(desired_ee_pos) -> joint_targets{=
+        self.joint_positions, self.converged = self.ik_solver.compute_joint_pos(desired_ee_pos.value.task_pos)
+        if (not self.converged):
+            request_stop()
+        joint_targets.set(Target(j_targs=self.joint_positions))
+    =}
+}

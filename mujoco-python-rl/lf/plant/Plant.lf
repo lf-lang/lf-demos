@@ -1,0 +1,44 @@
+target Python { 
+    keepalive: true
+}
+
+preamble{=
+    from src.types.observation import Observation
+    from src.types.command import Command
+    from src.mujoco_env.env import MujocoEnv
+    import numpy as np
+=}
+
+# this reactor drives the MuJoCo environment
+reactor Plant {
+
+    input cmd
+    input physics_trigger
+    output obs
+    output env_props
+
+    state env
+    state current_obs
+    state last_torque
+
+    # init environment on startup
+    reaction(startup) -> obs, env_props {=
+        self.env = MujocoEnv("src/mujoco_env/3dof_leg.xml")
+        self.current_obs = self.env.reset(seed=40)
+        self.last_torque = torques=np.zeros(self.env.model.nu)
+        obs.set(self.current_obs)
+        env_props.set(self.env)
+    =}
+
+    # handle receiving a command
+    reaction(cmd) {=
+        assert isinstance(cmd.value, Command)
+        self.last_torque = cmd.value.torques
+    =}
+
+    # apply command to the plant on receiving a trigger from the physics timer, outputs the observation produced from stepping the environment from the input command
+    reaction(physics_trigger) -> obs {=
+        self.current_obs = self.env.step(self.last_torque)
+        obs.set(self.current_obs)
+    =}
+}
