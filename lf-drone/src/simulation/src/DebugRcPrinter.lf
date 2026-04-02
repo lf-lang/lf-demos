@@ -4,13 +4,28 @@ preamble {=
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <errno.h>
+
+static void ensure_parent_dir(const char* path) {
+  char dir[512];
+  strncpy(dir, path, sizeof(dir) - 1);
+  dir[sizeof(dir) - 1] = '\0';
+
+  char* slash = strrchr(dir, '/');
+  if (!slash) return;
+
+  *slash = '\0';
+
+  char cmd[600];
+  snprintf(cmd, sizeof(cmd), "mkdir -p \"%s\"", dir);
+  system(cmd);
+}
 =}
 
-reactor DebugRcPrinter(out_path:string="rc_out.csv") {
-  // Trigger once per CSV row
+reactor DebugRcPrinter(out_path:string="./src/simulation/results/rc_out.csv") {
   input step: int
 
-  // RC outputs from AvoidPlanner
   input roll:int
   input pitch:int
   input yaw:int
@@ -28,11 +43,14 @@ reactor DebugRcPrinter(out_path:string="rc_out.csv") {
   state a2: int = 1000
 
   reaction(startup) {=
+    ensure_parent_dir(self->out_path);
+
     self->fp = fopen(self->out_path, "w");
     if (!self->fp) {
       fprintf(stderr, "[DebugRcPrinter] Failed to open %s\n", self->out_path);
       return;
     }
+
     fprintf(self->fp, "step,roll,pitch,yaw,throttle,aux1,aux2\n");
     fflush(self->fp);
   =}
@@ -49,7 +67,6 @@ reactor DebugRcPrinter(out_path:string="rc_out.csv") {
   reaction(aux1)     {= self->a1  = aux1->value; =}
   reaction(aux2)     {= self->a2  = aux2->value; =}
 
-  // One output row per ToF CSV row
   reaction(step) {=
     if (!self->fp) return;
 

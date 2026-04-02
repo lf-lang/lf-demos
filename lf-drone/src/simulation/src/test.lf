@@ -6,26 +6,29 @@ import DebugRcPrinter from "DebugRcPrinter.lf"
 import UserLandCmd from "/mnt/e/PhD/lf-demos/lf-drone/lib/UserLandCmd.lf"
 
 main reactor test {
-  // ToF sensors (use the exact buses/addresses that work for you)
-  csv = new CSV_reader(path="src/tof_20260211_133454.csv", period=20 ms)
+  csv = new CSV_reader(
+    path="/mnt/e/PhD/lf-demos/lf-drone/src/simulation/data/tof_20260211_133454.csv",
+    period=20 ms
+  )
 
-  avoid  = new AvoidPlanner()
-  dbg   = new DebugRcPrinter(out_path="rc_out_2.csv")
+  avoid = new AvoidPlanner()
 
-  // Keyboard landing trigger
+  dbg = new DebugRcPrinter(
+    out_path="/mnt/e/PhD/lf-demos/lf-drone/src/simulation/results/rc_out.csv"
+  )
+
   land_cmd = new UserLandCmd()
 
-  // sensors -> planner
   csv.front  -> avoid.front
   csv.left   -> avoid.left
   csv.right  -> avoid.right
   csv.bottom -> avoid.bottom
   csv.top    -> avoid.top
 
-  // landing command
+  land_cmd.out -> avoid.land
+
   csv.step -> dbg.step
 
-  // planner -> MSP
   avoid.roll     -> dbg.roll
   avoid.pitch    -> dbg.pitch
   avoid.yaw      -> dbg.yaw
