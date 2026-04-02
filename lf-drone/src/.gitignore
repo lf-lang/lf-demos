@@ -1,0 +1,7 @@
+# Lingua Franca generated/build directories
+bin/
+include/
+src-gen/
+**/bin/
+**/include/
+**/src-gen/
