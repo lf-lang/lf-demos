@@ -1,38 +1,46 @@
 target C   // runs until Ctrl+C
 
-import CSV_reader from "CSV_reader.lf"
-import AvoidPlanner from "avoid_planner_modal.lf"
-import DebugRcPrinter from "DebugRcPrinter.lf"
+import PyToF from "ToFBridgeCSV.lf"
+import AvoidPlanner from "/mnt/e/PhD/lf-demos/lf-drone/lib/avoid_planner_modal.lf"
+import MSPSender from "/mnt/e/PhD/lf-demos/lf-drone/lib/msp_sender.lf"
 import UserLandCmd from "/mnt/e/PhD/lf-demos/lf-drone/lib/UserLandCmd.lf"
 
 main reactor test {
-  csv = new CSV_reader(
-    path="/mnt/e/PhD/lf-demos/lf-drone/src/simulation/data/tof_20260211_133454.csv",
-    period=20 ms
-  )
+  bottom = new PyToF(id=0, label="bottom", path="src/simulation/data/bottom.csv")
+  front  = new PyToF(id=1, label="front",  path="src/simulation/data/front.csv")
+  right  = new PyToF(id=2, label="right",  path="src/simulation/data/right.csv")
+  left   = new PyToF(id=3, label="left",   path="src/simulation/data/left.csv")
+  top    = new PyToF(id=4, label="top",    path="src/simulation/data/top.csv")
 
-  avoid = new AvoidPlanner()
+  avoid  = new AvoidPlanner()
 
-  dbg = new DebugRcPrinter(
-    out_path="/mnt/e/PhD/lf-demos/lf-drone/src/simulation/results/rc_out.csv"
+  // port="" puts MSPSender into print/log mode for simulation.
+  // period=20 ms keeps logging aligned with the planner/update rate.
+  msp = new MSPSender(
+    port="",
+    period=20 ms,
+    verbose=1,
+    print_every=5,
+    log_path="src/simulation/results/rc_out.csv"
   )
 
   land_cmd = new UserLandCmd()
 
-  csv.front  -> avoid.front
-  csv.left   -> avoid.left
-  csv.right  -> avoid.right
-  csv.bottom -> avoid.bottom
-  csv.top    -> avoid.top
+  // sensors -> planner
+  front.value  -> avoid.front
+  left.value   -> avoid.left
+  right.value  -> avoid.right
+  bottom.value -> avoid.bottom
+  top.value    -> avoid.top
 
+  // landing command
   land_cmd.out -> avoid.land
 
-  csv.step -> dbg.step
-
-  avoid.roll     -> dbg.roll
-  avoid.pitch    -> dbg.pitch
-  avoid.yaw      -> dbg.yaw
-  avoid.throttle -> dbg.throttle
-  avoid.aux1     -> dbg.aux1
-  avoid.aux2     -> dbg.aux2
+  // planner -> MSP
+  avoid.roll     -> msp.roll
+  avoid.pitch    -> msp.pitch
+  avoid.yaw      -> msp.yaw
+  avoid.throttle -> msp.throttle
+  avoid.aux1     -> msp.aux1
+  avoid.aux2     -> msp.aux2
 }
