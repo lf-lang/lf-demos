@@ -6,37 +6,32 @@ import MSPSender from "/mnt/e/PhD/lf-demos/lf-drone/lib/msp_sender.lf"
 import UserLandCmd from "/mnt/e/PhD/lf-demos/lf-drone/lib/UserLandCmd.lf"
 
 main reactor test {
-  bottom = new PyToF(id=0, label="bottom", path="src/simulation/data/bottom.csv")
-  front  = new PyToF(id=1, label="front",  path="src/simulation/data/front.csv")
-  right  = new PyToF(id=2, label="right",  path="src/simulation/data/right.csv")
-  left   = new PyToF(id=3, label="left",   path="src/simulation/data/left.csv")
-  top    = new PyToF(id=4, label="top",    path="src/simulation/data/top.csv")
+  bottom = new PyToF(id=0, label="bottom", path="simulation/data/bottom.csv", start_ms=20 ms, period=20 ms, verbose=1)
+  front  = new PyToF(id=1, label="front",  path="simulation/data/front.csv",  start_ms=20 ms, period=20 ms, verbose=1)
+  right  = new PyToF(id=2, label="right",  path="simulation/data/right.csv",  start_ms=20 ms, period=20 ms, verbose=1)
+  left   = new PyToF(id=3, label="left",   path="simulation/data/left.csv",   start_ms=20 ms, period=20 ms, verbose=1)
+  top    = new PyToF(id=4, label="top",    path="simulation/data/top.csv",    start_ms=20 ms, period=20 ms, verbose=1)
 
-  avoid  = new AvoidPlanner()
+  avoid = new AvoidPlanner()
 
-  // port="" puts MSPSender into print/log mode for simulation.
-  // period=20 ms keeps logging aligned with the planner/update rate.
   msp = new MSPSender(
     port="",
     period=20 ms,
     verbose=1,
-    print_every=5,
-    log_path="src/simulation/results/rc_out.csv"
+    print_every=1,
+    log_path="simulation/results/rc-out.csv"
   )
 
   land_cmd = new UserLandCmd()
 
-  // sensors -> planner
   front.value  -> avoid.front
   left.value   -> avoid.left
   right.value  -> avoid.right
   bottom.value -> avoid.bottom
   top.value    -> avoid.top
 
-  // landing command
   land_cmd.out -> avoid.land
 
-  // planner -> MSP
   avoid.roll     -> msp.roll
   avoid.pitch    -> msp.pitch
   avoid.yaw      -> msp.yaw

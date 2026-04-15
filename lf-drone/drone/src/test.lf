@@ -1,9 +1,9 @@
 target C   // runs until Ctrl+C
 
-import PyToF from "ToFBridgeC.lf"
-import AvoidPlanner from "avoid_planner_modal.lf"
-import MSPSender from "msp_sender.lf"
-import UserLandCmd from "UserLandCmd.lf"
+import PyToF from "/mnt/e/PhD/lf-demos/lf-drone/lib/ToFBridgeC.lf"
+import AvoidPlanner from "/mnt/e/PhD/lf-demos/lf-drone/lib/avoid_planner_modal.lf"
+import MSPSender from "/mnt/e/PhD/lf-demos/lf-drone/lib/msp_sender.lf"
+import UserLandCmd from "/mnt/e/PhD/lf-demos/lf-drone/lib/UserLandCmd.lf"
 
 main reactor test {
   // ToF sensors (use the exact buses/addresses that work for you)

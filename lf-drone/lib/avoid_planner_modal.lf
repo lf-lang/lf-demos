@@ -39,12 +39,17 @@ reactor AvoidPlanner {
   state ceil_min_clear: double = 0.35
   state ceil_soft_band: double = 0.20
 
-  state front_thresh: double = 0.70
+  state front_thresh: double = 0.35
+  state front_hard: double = 0.20
+
   state side_target:  double = 0.50
   state k_side: double = 250.0
-  state k_yaw:  double = 45.0
-  state pitch_fwd: int = 1538
-  state pitch_slow: int = 1500
+  state k_yaw:  double = 120.0
+
+  state pitch_fwd:  int = 1538
+  state pitch_slow: int = 1506
+  state pitch_back: int = 1460
+  state hover_confirm_ticks:int = 10
 
   // ---------------- Per-mode scratch (reactor-level; reset on entry) ----------------
   state ticks:int = 0
@@ -60,9 +65,9 @@ reactor AvoidPlanner {
   state land_step:int = 6       // throttle decrement per tick (≈300 us/s)
 
   // Stage durations (ticks @ 50 Hz)
-  state t_neutral:int = 75
-  state t_arm:int     = 100
-  state t_takeoff:int = 75
+  state t_neutral:int = 5
+  state t_arm:int     = 10
+  state t_takeoff:int = 15
 
   // ---------------- Modes ----------------
 
@@ -193,7 +198,9 @@ reactor AvoidPlanner {
       // Confirm stable hover band once
       if (!self->hover_ok) {
         if (!isnan(b) && b > 0.6 && b < 1.2) {
-          if (++self->ok_count >= 50) self->hover_ok = 1;
+          if (++self->ok_count >= self->hover_confirm_ticks) {
+            self->hover_ok = 1;
+          }
         } else {
           self->ok_count = 0;
         }
@@ -203,21 +210,50 @@ reactor AvoidPlanner {
       if (self->hover_ok) {
         rc_pitch = self->pitch_fwd;
 
-        if (!isnan(f) && f < self->front_thresh) {
-          rc_pitch = self->pitch_slow;
-          double e = self->front_thresh - f;
-          int yaw_cmd = 1500 + (int)(self->k_yaw * e);
-          if (yaw_cmd < 1400) yaw_cmd = 1400;
-          if (yaw_cmd > 1700) yaw_cmd = 1700;
-          rc_yaw = yaw_cmd;
-        }
-
+        // Corridor-centering from side sensors
         double roll_bias = 0.0;
         if (!isnan(l)) roll_bias += (self->side_target - l);
         if (!isnan(r)) roll_bias -= (self->side_target - r);
+
+        // If obstacle is ahead, slow down first.
+        // If it is very close, back away.
+        if (!isnan(f) && f < self->front_thresh) {
+          rc_pitch = self->pitch_slow;
+
+          if (f < self->front_hard) {
+            rc_pitch = self->pitch_back;
+          }
+
+          // Choose the side with more room.
+          // Positive => more room on the right.
+          double side_pref = 0.0;
+          if (!isnan(l) && !isnan(r)) {
+            side_pref = r - l;
+          } else if (!isnan(r)) {
+            side_pref = r - self->side_target;
+          } else if (!isnan(l)) {
+            side_pref = self->side_target - l;
+          }
+
+          // Add sidestep toward the open side
+          roll_bias += 0.8 * side_pref;
+
+          // Yaw toward the open side too
+          double closeness = self->front_thresh - f;
+          int yaw_delta = (int)(self->k_yaw * closeness);
+          if (yaw_delta < 25) yaw_delta = 25;
+          if (yaw_delta > 180) yaw_delta = 180;
+
+          if (side_pref >= 0.0) {
+            rc_yaw = 1500 + yaw_delta;   // turn right
+          } else {
+            rc_yaw = 1500 - yaw_delta;   // turn left
+          }
+        }
+
         int roll_cmd = 1500 + (int)(self->k_side * roll_bias);
-        if (roll_cmd < 1400) roll_cmd = 1400;
-        if (roll_cmd > 1600) roll_cmd = 1600;
+        if (roll_cmd < 1380) roll_cmd = 1380;
+        if (roll_cmd > 1620) roll_cmd = 1620;
         rc_roll = roll_cmd;
       }
 

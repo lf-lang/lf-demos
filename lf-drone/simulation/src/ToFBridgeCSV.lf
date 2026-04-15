@@ -5,6 +5,7 @@ preamble {=
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <errno.h>
 
 void lf_request_stop(void);
 
@@ -34,8 +35,8 @@ static int parse_first_number(const char* s, double* out) {
 reactor PyToF(
   id:int=0,
   label:string="sensor",
-  path:string="sensor.csv",
-  start_ms:time=100 ms,
+  path:string="simulation/data/sensor.csv",
+  start_ms:time=20 ms,
   period:time=20 ms,
   verbose:int=0
 ) {
@@ -44,21 +45,24 @@ reactor PyToF(
 
   state fp: FILE*
   state line_no:int = 0
+  state sample_count:int = 0
 
   reaction(startup) {=
-    self->fp = fopen(self->path, "r");
+    self->fp = NULL;
     self->line_no = 0;
+    self->sample_count = 0;
 
+    printf("[PyToFCSV:%d:%s] opening %s\n", self->id, self->label, self->path);
+    fflush(stdout);
+
+    self->fp = fopen(self->path, "r");
     if (!self->fp) {
-      fprintf(stderr, "[PyToFCSV:%d:%s] Failed to open %s\n",
-              self->id, self->label, self->path);
+      fprintf(stderr,
+              "[PyToFCSV:%d:%s] FAILED to open %s : %s\n",
+              self->id, self->label, self->path, strerror(errno));
+      fflush(stderr);
       lf_request_stop();
       return;
-    }
-
-    if (self->verbose) {
-      printf("[PyToFCSV:%d:%s] Replaying %s\n",
-             self->id, self->label, self->path);
     }
   =}
 
@@ -74,10 +78,10 @@ reactor PyToF(
 
     while (1) {
       if (!fgets(line, sizeof(line), self->fp)) {
-        if (self->verbose) {
-          printf("[PyToFCSV:%d:%s] EOF on %s\n",
-                 self->id, self->label, self->path);
-        }
+        printf("[PyToFCSV:%d:%s] EOF on %s after %d samples\n",
+               self->id, self->label, self->path, self->sample_count);
+        fflush(stdout);
+
         fclose(self->fp);
         self->fp = NULL;
         lf_request_stop();
@@ -92,10 +96,13 @@ reactor PyToF(
 
       double v = 0.0;
       if (parse_first_number(line, &v) == 0) {
+        self->sample_count += 1;
         lf_set(value, v);
+
         if (self->verbose) {
-          printf("[PyToFCSV:%d:%s] value=%.3f\n",
-                 self->id, self->label, v);
+          printf("[PyToFCSV:%d:%s] sample=%d value=%.3f\n",
+                 self->id, self->label, self->sample_count, v);
+          fflush(stdout);
         }
         return;
       }
@@ -105,10 +112,10 @@ reactor PyToF(
       }
 
       if (self->verbose) {
-        printf("[PyToFCSV:%d:%s] missing sample on line %d\n",
+        printf("[PyToFCSV:%d:%s] skipped line %d\n",
                self->id, self->label, self->line_no);
+        fflush(stdout);
       }
-      return;
     }
   =}
 }
