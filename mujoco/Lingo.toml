@@ -10,5 +10,21 @@ platform = "Native"
 
 [app.properties]
 
+[[app]]
+name = "Panda"
+main = "src/Panda.lf"
+target = "C"
+platform = "Native"
+
+[app.properties]
+
+[[app]]
+name = "InvertedPendulum"
+main = "src/InvertedPendulum.lf"
+target = "C"
+platform = "Native"
+
+[app.properties]
+
 [dependencies]
 mujoco-c = {version=">=0.1", git="https://github.com/lf-lang/mujoco-c.git", branch="main"}
