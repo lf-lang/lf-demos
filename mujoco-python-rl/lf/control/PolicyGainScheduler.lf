@@ -1,0 +1,149 @@
+target Python {
+    keepalive: true
+}
+
+preamble{=
+    import numpy as np
+    import torch
+    from src.controllers.pid import Parameters
+    from src.types.observation import Observation
+    from src.types.target import Target
+    from src.types.command import Command
+    from training.ppo_agent import ActorCritic
+    from src.tasks.target_gen import Task
+
+    # helper function for loading the correct policy 
+    def load_policy_bundle(path: str):
+        checkpoint = torch.load(path, map_location="cpu")
+        raw_config = checkpoint["config"]
+        hidden_sizes = tuple(raw_config.get("hidden_sizes", [128, 128]))
+        model = ActorCritic(36, 12, hidden_sizes)
+        model.load_state_dict(checkpoint["model_state_dict"])
+        model.eval()
+        kp_max = float(raw_config.get("kp_max", 80.0))
+        ki_max = float(raw_config.get("ki_max", 10.0))
+        kd_max = float(raw_config.get("kd_max", 8.0))
+        kaw_max = float(raw_config.get("kaw_max", 2.0))
+        gain_scale = np.array([kp_max] * 3 + [ki_max] * 3 + [kd_max] * 3 + [kaw_max] * 3)
+        smoothing = float(raw_config.get("action_gain_smoothing", 0.35))
+        return checkpoint, raw_config, model, gain_scale, smoothing
+=}
+
+# this reactor executes the gain schedule learned by PPO
+reactor PolicyGainScheduler(checkpoint_path = "training/checkpoints/ppo_gain_schedule_smooth.pt",
+                            pose_checkpoint_path = "training/checkpoints/ppo_gain_schedule_pose.pt",
+                            sinusoid_checkpoint_path = "training/checkpoints/ppo_gain_schedule_sinusoid.pt",
+                            trajectory_checkpoint_path = "training/checkpoints/ppo_gain_schedule_trajectory.pt",
+                            num_actuators = 3) {
+    input policy_trigger
+    input policy_task
+    input obs
+    input joint_targets
+    input ee_target
+    input applied_torques
+
+    output controller_params
+
+    state model
+    state raw_config
+    state current_gains
+    state last_torque
+    state beta
+    state alpha
+    state u_min
+    state u_max
+    state dt = 0.002
+    state smoothing = 0.35
+    state gain_scale
+    state loaded_checkpoint_path
+
+    # set initial controller params
+    reaction(startup) -> controller_params {=
+        # load the mixed task policy
+        _, self.raw_config, self.model, self.gain_scale, self.smoothing = load_policy_bundle(self.checkpoint_path)
+        self.loaded_checkpoint_path = self.checkpoint_path
+
+        # set initial params that policy works from
+        self.current_gains = np.array([1.0, 1.0, 1.0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        self.last_torque = np.zeros(self.num_actuators)
+        self.beta = np.zeros(self.num_actuators)
+        self.alpha = np.full(self.num_actuators, 0.9)
+        self.u_min = np.full(self.num_actuators, -1.0)
+        self.u_max = np.full(self.num_actuators, 1.0)
+        self.dt = 0.002
+        controller_params.set(Parameters(kp=self.current_gains[0:3], ki=self.current_gains[3:6], kd=self.current_gains[6:9], dt=self.dt, beta=self.beta, alpha=self.alpha, u_min=self.u_min, u_max=self.u_max, kaw=self.current_gains[9:12]))
+    =}
+
+    # loads a desired policy 
+    reaction(policy_task) {=
+        selected_path = self.checkpoint_path
+        if policy_task.value == Task.POSE:
+            selected_path = self.pose_checkpoint_path
+        elif policy_task.value == Task.SINUSOID:
+            selected_path = self.sinusoid_checkpoint_path
+        elif policy_task.value == Task.TRAJECTORY:
+            selected_path = self.trajectory_checkpoint_path
+
+        if selected_path == self.loaded_checkpoint_path:
+            return
+
+        # load the policy corresponding to the desired task
+        _, self.raw_config, self.model, self.gain_scale, self.smoothing = load_policy_bundle(selected_path)
+        self.loaded_checkpoint_path = selected_path
+        self.current_gains = np.array([1.0, 1.0, 1.0, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+    =}
+
+    # this is the gain scheduling reaction
+    reaction(policy_trigger) obs, joint_targets, ee_target, applied_torques -> controller_params {=
+        # handle inputs
+        if obs.value is None or joint_targets.value is None or ee_target.value is None:
+            return
+        observation = obs.value
+        joint_target = joint_targets.value
+        task_target = ee_target.value
+        if applied_torques.value is not None:
+            self.last_torque = applied_torques.value.torques
+
+        if joint_target.pos_targs is None or joint_target.vel_targs is None:
+            return
+        if task_target.task_pos is None or task_target.task_vel is None:
+            return
+        if observation.ee_pos is None:
+            return
+
+        # compute error signals
+        joint_error = joint_target.pos_targs - observation.q
+        task_error = task_target.task_pos - observation.ee_pos
+
+        # construct observation to give to model
+        policy_obs = np.concatenate([
+            observation.q,
+            observation.qd,
+            joint_target.pos_targs,
+            joint_target.vel_targs,
+            joint_error,
+            task_error,
+            task_target.task_vel,
+            self.last_torque,
+            self.current_gains / self.gain_scale,
+        ]).astype(np.float32)
+
+        # get action from constructed observation; follows loaded policy from other reactions
+        # action is a change in gains
+        action, _, _ = self.model.act(policy_obs, deterministic=True)
+
+        # scaling
+        kp_max = float(self.raw_config.get("kp_max", 80.0))
+        ki_max = float(self.raw_config.get("ki_max", 10.0))
+        kd_max = float(self.raw_config.get("kd_max", 8.0))
+        kaw_max = float(self.raw_config.get("kaw_max", 2.0))
+        ranges = np.array([[0.05, kp_max]] * 3 + [[0.0, ki_max]] * 3 + [[0.0, kd_max]] * 3 + [[0.0, kaw_max]] * 3)
+        normalized = np.clip(action, -1.0, 1.0)
+        unit = 0.5 * (normalized + 1.0)
+        requested_gains = ranges[:, 0] + unit * (ranges[:, 1] - ranges[:, 0])
+
+        # update gains 
+        self.current_gains = (1.0 - self.smoothing) * self.current_gains + self.smoothing * requested_gains
+        controller_params.set(Parameters(kp=self.current_gains[0:3], ki=self.current_gains[3:6], kd=self.current_gains[6:9], dt=self.dt, beta=self.beta, alpha=self.alpha, u_min=self.u_min, u_max=self.u_max, kaw=self.current_gains[9:12]))
+    =}
+}

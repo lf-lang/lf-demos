@@ -10,35 +10,66 @@ preamble{=
 =}
 
 # this reactor drives the MuJoCo environment
-reactor Plant {
+reactor Plant(gravity_x = 0.0,
+              gravity_y = 0.0,
+              gravity_z = -9.81) {
 
     input cmd
     input physics_trigger
+    input sim_seed
+    input episode_dur
     output obs
     output env_props
+    output disturbance_schedule
 
     state env
     state current_obs
     state last_torque
 
     # init environment on startup
-    reaction(startup) -> obs, env_props {=
+    reaction(startup) sim_seed, episode_dur -> obs, env_props, disturbance_schedule {=
+        # create mujoco env; use the params below
         self.env = MujocoEnv("src/mujoco_env/3dof_leg.xml")
-        self.current_obs = self.env.reset(seed=40)
-        self.last_torque = torques=np.zeros(self.env.model.nu)
+        seed = 0 if sim_seed.value is None else int(sim_seed.value)
+        use_random_gravity = False
+        use_random_tilt = False
+        use_model_variation = False
+        duration = 2000 if episode_dur.value is None else int(episode_dur.value)
+        noise_std = 0.0
+
+        # set gravity for the plant to operate in
+        gravity_override = np.array(
+            [float(self.gravity_x), float(self.gravity_y), float(self.gravity_z)],
+            dtype=np.float64,
+        )
+
+        # reset env initially and produce initial observation
+        self.current_obs = self.env.reset(
+            seed,
+            use_random_gravity,
+            use_random_tilt,
+            use_model_variation,
+            duration,
+            noise_std,
+            gravity_override=gravity_override,
+        )
+        self.last_torque = np.zeros(self.env.model.nu)
         obs.set(self.current_obs)
+
+        # set env properties that other reactors seed from
         env_props.set(self.env)
+        disturbance_schedule.set(self.env.dist_gen.schedule if self.env.dist_gen is not None else [])
     =}
 
     # handle receiving a command
     reaction(cmd) {=
-        assert isinstance(cmd.value, Command)
+        assert isinstance(cmd.value, Command) # Command struct
         self.last_torque = cmd.value.torques
     =}
 
     # apply command to the plant on receiving a trigger from the physics timer, outputs the observation produced from stepping the environment from the input command
     reaction(physics_trigger) -> obs {=
-        self.current_obs = self.env.step(self.last_torque)
+        self.current_obs = self.env.step(self.last_torque) # Observation struct
         obs.set(self.current_obs)
     =}
 }

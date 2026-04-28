@@ -1,0 +1,44 @@
+target Python{
+    keepalive: true
+}
+
+preamble{=
+    import copy
+    from collections import deque
+=}
+
+# this reactor introduces Observation delay, simulating delays in sensor readings on the plant
+# delay is implemented by withholding observations from a desired number of env steps
+reactor ObsDelay{
+    input obs_in
+    input delay_steps
+    output obs_out
+
+    state queue
+
+    # init queue for holding delayed Observations
+    reaction(startup){=
+        self.queue = deque()
+    =}
+
+    # delay observations by a number of env steps
+    reaction(obs_in) delay_steps -> obs_out {=
+        obs = obs_in.value # Observation struct
+        d = 0 if delay_steps.value is None else int(delay_steps.value)
+
+        # if no delay steps, output obs without delay
+        if d <= 0:
+            obs_out.set(obs)
+            return
+
+        # queue number of observations that are to be delayed
+        if len(self.queue) == 0:
+            for _ in range(d + 1):
+                self.queue.append(copy.deepcopy(obs))
+
+        # pop earliest observation from queue and set the output
+        delayed = self.queue.popleft()
+        self.queue.append(copy.deepcopy(obs))
+        obs_out.set(delayed)
+    =}
+}

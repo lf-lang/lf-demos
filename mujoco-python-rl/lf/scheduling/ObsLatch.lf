@@ -13,8 +13,9 @@ reactor ObsLatch{
     output obs_out
 
     state last_obs
+    state env
 
-    reaction(startup){=
+    reaction(startup) {=
         self.last_obs = Observation(q=np.zeros(3), qd=np.zeros(3))
     =}
 

@@ -7,23 +7,46 @@ preamble{=
     from src.types.target import Target
 =}
 
+# this reactor computes joint targets given task targets
 reactor InverseKinematics{
-    input desired_ee_pos
+
+    input desired_ee
     input env_props
     output joint_targets
 
     state ik_solver
     state joint_positions
+    state joint_velocities
+    state joint_accelerations
     state converged
+    state ee_des
 
+    # initializes Inverse Kinematics solver with seeding from environment
     reaction(env_props) {=
         self.ik_solver = InverseKinematics(env_props.value)
     =}
 
-    reaction(desired_ee_pos) -> joint_targets{=
-        self.joint_positions, self.converged = self.ik_solver.compute_joint_pos(desired_ee_pos.value.task_pos)
-        if (not self.converged):
-            request_stop()
-        joint_targets.set(Target(j_targs=self.joint_positions))
+    # computes target joint positions and velocities from task target
+    reaction(desired_ee) -> joint_targets{=
+
+        self.ee_des = desired_ee.value # this is a Target struct
+
+        # compute joint positions
+        self.joint_positions, self.converged = self.ik_solver.compute_joint_pos(self.ee_des.task_pos, self.ee_des.ik_seed)
+
+        # handle ik not converging
+        if (not self.converged) and self.ee_des.ik_seed is not None:
+            self.joint_positions = self.ee_des.ik_seed
+            self.ik_solver.q = self.joint_positions
+            self.converged = True
+        
+        # compute joint velocities, acceleration is 0
+        self.joint_velocities, self.joint_accelerations = self.ik_solver.compute_joint_vel(self.ee_des.task_vel)
+        # if (not self.converged):
+        #     print("not converged")
+        #     request_stop()
+        
+        # set joint_targets to a Target struct packed with joint-related targets
+        joint_targets.set(Target(pos_targs=self.joint_positions, vel_targs=self.joint_velocities, acc_targs=self.joint_accelerations))
     =}
 }

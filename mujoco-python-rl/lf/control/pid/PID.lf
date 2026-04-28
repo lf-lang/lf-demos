@@ -19,6 +19,7 @@ reactor PIDJointController(num_actuators=0){
     input joint_targets
     input controller_params
     input control_trigger
+    input env_props
     output output_effort
 
     state last_params
@@ -30,28 +31,29 @@ reactor PIDJointController(num_actuators=0){
     state use_deriv_on_meas
     state states
     state targets
+    state use_grav_comp
+    state use_inv_dyn
 
     # init PID controller on startup
-    reaction(startup){=
-        self.controller = PID(self.num_actuators)
+    reaction(env_props){=
+        self.controller = PID(self.num_actuators, env_props.value)
         self.last_params = None
         self.last_error = np.zeros(self.num_actuators)
         self.use_pid = True
-        self.use_ff = False
+        self.use_grav_comp = False
+        self.use_inv_dyn = False
         self.use_weighted_error = False
-        self.use_deriv_on_meas = False
     =}
 
     # set controller parameters on receiving a parameters update
     # without RL, this runs on startup in main
-    # using RL, this will be the action produced by the network
+    # using RL, this will be the action produced by the learned policy
     reaction(controller_params){=
         assert isinstance(controller_params.value, Parameters)
         self.last_params = controller_params.value
         self.controller.set_params(controller_params.value.kp, 
                                    controller_params.value.ki,
                                    controller_params.value.kd,
-                                   controller_params.value.kff,
                                    controller_params.value.dt,
                                    controller_params.value.beta,
                                    controller_params.value.alpha,
@@ -62,10 +64,13 @@ reactor PIDJointController(num_actuators=0){
 
     # on trigger from the control timer, compute the output effort of the controller to achieve the desired state of the joint space
     reaction(control_trigger) joint_states, joint_targets -> output_effort {=
+        # assert inputs are valid
         assert self.last_params is not None
-        assert isinstance(joint_states.value, Observation)
-        assert isinstance(joint_targets.value, Target)
-        effort = self.controller.compute_effort(self.use_pid, self.use_ff, joint_targets.value.j_targs, joint_states.value.q, self.use_weighted_error, self.use_deriv_on_meas)
+        assert isinstance(joint_states.value, Observation) # Observation struct
+        assert isinstance(joint_targets.value, Target) # Target struct
+
+        # computer effort from PID controller
+        effort = self.controller.compute_effort(self.use_pid, self.use_grav_comp, self.use_inv_dyn, self.use_weighted_error, joint_targets.value.pos_targs, joint_states.value.q, joint_states.value.qd, joint_targets.value.vel_targs, joint_targets.value.acc_targs)
         self.last_error = self.controller.error
         output_effort.set(effort)
     =}

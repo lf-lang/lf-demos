@@ -17,7 +17,7 @@ header = rows[0]
 data = np.array(rows[1:], dtype=float)
 
 num_cols = data.shape[1]
-num_q = num_cols
+num_q = 3
 q_traj = data[:, :num_q]
 
 model = mujoco.MjModel.from_xml_path("src/mujoco_env/3dof_leg.xml")
@@ -26,6 +26,7 @@ data_mj = mujoco.MjData(model)
 mujoco.mj_resetData(model, data_mj)
 
 with mujoco.viewer.launch_passive(model, data_mj) as viewer:
+    #time.sleep(1)
     for k in range(len(q_traj)):
         if not viewer.is_running():
             break

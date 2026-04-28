@@ -1,0 +1,9 @@
+{
+  "name": "ppo_gain_schedule_mixed",
+  "checkpoint_path": "training/checkpoints/ppo_gain_schedule_mixed.pt",
+  "description": "Primary PPO adaptive PID gain scheduler trained on trajectory, pose, and sinusoid tasks with hidden randomized gravity, tilt, and model variation.",
+  "selection_reason": "Retained after looping-trajectory retraining because it outperformed the retrained candidate on 50-episode looping mixed-task evaluation.",
+  "eval_summary_path": "training/logs/ppo_mixed_pre_retrain_eval_summary.csv",
+  "eval_schedule_path": "training/logs/ppo_mixed_pre_retrain_eval_gain_schedule.csv",
+  "metrics_path": "training/logs/ppo_mixed_pre_retrain_metrics.csv"
+}

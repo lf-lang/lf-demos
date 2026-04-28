@@ -11,3 +11,9 @@ class Observation(NamedTuple):
     ee_ang_vel: Optional[np.ndarray] = None
     Jp: Optional[np.ndarray] = None
     contacts: Optional[np.ndarray] = None
+    masses : Optional[np.ndarray] = None
+    inertias: Optional[np.ndarray] = None
+    damping: Optional[np.ndarray] = None
+    gravity: Optional[np.ndarray] = None
+    seed: Optional[int] = None
+    noise_std: Optional[float] = None

@@ -1,0 +1,61 @@
+target Python{
+    keepalive: true
+}
+
+preamble{=
+    import numpy as np
+    from src.types.observation import Observation
+=}
+
+# this reactor introduces Observation noise, simulating imperfect state estimation on the plant
+reactor ObsNoise{
+    input obs_in
+    input env_props
+
+    output obs_out
+
+    state std
+    state env
+    state rng
+
+    # init randomization states
+    reaction(startup) {=
+        self.std = 0.0
+        self.rng = np.random.default_rng(0)
+    =}
+
+    # seed randomization states from env
+    reaction(env_props) {=
+        self.env = env_props.value
+        self.std = self.env.noise_std
+        seed = 0 if self.env.seed is None else int(self.env.seed)
+        self.rng = np.random.default_rng(seed + 1000003)
+    =}
+
+    # adds observation noise
+    reaction(obs_in) -> obs_out{=
+        obs = obs_in.value # Observation struct
+        std = float(self.std)
+
+        # if no noise
+        if std <= 0.0:
+            obs_out.set(obs)
+            return
+
+        q = obs.q.copy()
+        qd = obs.qd.copy()
+        ee_pos = obs.ee_pos.copy()
+        ee_lin_vel = obs.ee_lin_vel.copy()
+        ee_ang_vel = obs.ee_ang_vel.copy()
+
+        # add noise to these fields of the observation struct
+        q += self.rng.normal(0.0, std, size=q.shape)
+        qd += self.rng.normal(0.0, std, size=qd.shape)
+        ee_pos += self.rng.normal(0.0, std, size=ee_pos.shape)
+        ee_lin_vel += self.rng.normal(0.0, std, size=ee_lin_vel.shape)
+        ee_ang_vel += self.rng.normal(0.0, std, size=ee_ang_vel.shape)
+
+        obs_out.set(Observation(q=q, qd=qd, ee_pos=ee_pos, ee_lin_vel=ee_lin_vel, ee_ang_vel=ee_ang_vel, masses=obs.masses, inertias=obs.inertias, damping=obs.damping, gravity=obs.gravity, seed=obs.seed, noise_std=std))
+    =}
+
+}
