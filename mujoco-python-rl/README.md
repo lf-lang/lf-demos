@@ -84,17 +84,22 @@ The initial goal for this learned gain schedule is that the leg maintains stable
 
 <img width="3778" height="666" alt="Screenshot 2026-04-28 222703" src="https://github.com/user-attachments/assets/5ea51f53-0237-46c0-8cf4-740ee84c8a22" />
 
-## Failures under Changing
+## Failures under Changing Gravity
 
 The following graphs and videos show the leg executing a sinusoidal trajectory in different gravitational environments with static controller gains.
+Note that a video for Kepler-452b will not be included as the visual differences aren't as apparent.
 
 - Moon (1.625 m/s^2)
 - Earth (9.81 m/s^2)
 - Kepler-452b (12.164 m/s^2)
 
 <p align="center">
-
+<img width="2164" height="813" alt="Screenshot 2026-04-28 235133" src="https://github.com/user-attachments/assets/2b7c8870-4684-4c16-9dc1-00d13ecf3cc9" />
 </p>
+
+https://github.com/user-attachments/assets/1c421d02-2603-4c9b-9d5d-a39306e25632
+
+https://github.com/user-attachments/assets/064b2875-1499-40c4-9bc9-52cd6610e44c
 
 ## Reinforcement Learning (PPO)
 
@@ -124,8 +129,12 @@ The code for training the policy implementing the adaptive gain schedule is prov
 The following graphs and videos show the leg executing the same sinusoidal trajectory as earlier, but using the adaptive gain schedule learned by PPO. Notice how the performance looks nearly identical across all environments!
 
 <p align="center">
-
+<img width="2164" height="832" alt="Screenshot 2026-04-29 002651" src="https://github.com/user-attachments/assets/f399fdd1-14e0-44f9-b938-5c154c96af9e" />
 </p>
+
+https://github.com/user-attachments/assets/bd9aee72-c117-4c66-b656-008d4ba825b7
+
+https://github.com/user-attachments/assets/bc4cff16-2b23-4ba1-affc-2f45bdf32d8b
 
 ## Limitations
 
