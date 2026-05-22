@@ -151,3 +151,61 @@ https://github.com/user-attachments/assets/bc4cff16-2b23-4ba1-affc-2f45bdf32d8b
 - Training for contact forces
 - Implement on hexapod stack
 - Validate on hardware
+
+## Checkpoints
+
+The training directory contains the checkpoints of the training data. These files are needed for the execution, because it has the metadata from the training and will be used when we run the simulation as per the README. Removing this directory now will throw an error. However, the user can generate the files from the config directory using the command:
+
+python3 training/train_ppo.py --config "the_config_file_name.json"
+
+The files would be saved in the training/checkpoint directory. 
+
+## Directory Structure
+
+.
+├── configs
+├── lf
+│   ├── analysis
+│   │   └── Logger.lf
+│   ├── control
+│   │   ├── kinematics
+│   │   │   └── InverseKinematics.lf
+│   │   ├── OpenLoopController.lf
+│   │   ├── pid
+│   │   │   └── PID.lf
+│   │   └── PolicyGainScheduler.lf
+│   ├── Main.lf
+│   ├── planning
+│   │   └── TargetGenerator.lf
+│   ├── plant
+│   │   ├── ObsDelay.lf
+│   │   ├── ObsNoise.lf
+│   │   └── Plant.lf
+│   └── scheduling
+│       ├── ObsLatch.lf
+│       └── TargetLatch.lf
+├── README.md
+├── requirements.txt
+├── src
+│   ├── controllers
+│   │   └── pid.py
+│   ├── kinematics
+│   │   └── ik.py
+│   ├── mujoco_env
+│   │   ├── 3dof_leg.xml
+│   │   ├── disturbance.py
+│   │   └── env.py
+│   ├── rl
+│   │   └── gain_schedule_env.py
+│   ├── run_sim.py
+│   ├── tasks
+│   │   └── target_gen.py
+│   └── types
+│       ├── command.py
+│       ├── diagnostics.py
+│       ├── observation.py
+│       └── target.py
+└── training
+    ├── checkpoints
+    ├── ppo_agent.py
+    └── train_ppo.py
