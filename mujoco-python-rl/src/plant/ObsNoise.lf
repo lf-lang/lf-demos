@@ -4,7 +4,7 @@ target Python{
 
 preamble{=
     import numpy as np
-    from src.types.observation import Observation
+    from sim.types.observation import Observation
 =}
 
 # this reactor introduces Observation noise, simulating imperfect state estimation on the plant

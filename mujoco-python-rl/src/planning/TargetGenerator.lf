@@ -4,9 +4,9 @@ target Python{
 
 preamble{=
     import numpy as np
-    from src.types.target import Target
-    from src.tasks.target_gen import TargetGenerator
-    from src.tasks.target_gen import Task
+    from sim.types.target import Target
+    from sim.tasks.target_gen import TargetGenerator
+    from sim.tasks.target_gen import Task
 =}
 
 # this reactor generates the Targets that feed the IK reactor

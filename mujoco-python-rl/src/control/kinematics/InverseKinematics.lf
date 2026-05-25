@@ -3,8 +3,8 @@ target Python{
 }
 
 preamble{=
-    from src.kinematics.ik import InverseKinematics
-    from src.types.target import Target
+    from sim.kinematics.ik import InverseKinematics
+    from sim.types.target import Target
 =}
 
 # this reactor computes joint targets given task targets

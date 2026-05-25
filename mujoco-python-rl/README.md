@@ -40,14 +40,14 @@ This will install the dependencies necessary for running MuJoCo for the demo.
 Now that the proper dependencies have been installed in the environment, start compilation by running:
 
 ```bash
-lfc lf/Main.lf
-python3 src-gen/lf/Main/Main.py
+lfc src/Main.lf
+bin/Main
 ```
 
 If running Main.py fails due to an error similar to:
 
 ```bash
-ModuleNotFoundError: No module named 'src'
+ModuleNotFoundError: No module named 'sim'
 ```
 
 run this command,
@@ -60,7 +60,7 @@ and run Main.py again.
 To visualize the control of the leg in MuJoCo, which was generated using LF, run:
 
 ```bash
-python3 src/run_sim.py
+python3 sim/run_sim.py
 ```
 
 ## Project Background

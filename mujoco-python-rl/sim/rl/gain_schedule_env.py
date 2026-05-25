@@ -14,7 +14,7 @@ from src.types.observation import Observation
 # this class stores config variables related to the training env
 @dataclass
 class GainScheduleEnvConfig:
-    model_path: str = "src/mujoco_env/3dof_leg.xml"
+    model_path: str = "sim/mujoco_env/3dof_leg.xml"
     episode_steps: int = 2000
     policy_interval_steps: int = 5
     dt: float = 0.002

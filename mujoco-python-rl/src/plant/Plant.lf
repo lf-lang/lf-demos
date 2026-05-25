@@ -3,9 +3,9 @@ target Python {
 }
 
 preamble{=
-    from src.types.observation import Observation
-    from src.types.command import Command
-    from src.mujoco_env.env import MujocoEnv
+    from sim.types.observation import Observation
+    from sim.types.command import Command
+    from sim.mujoco_env.env import MujocoEnv
     import numpy as np
 =}
 
@@ -29,7 +29,7 @@ reactor Plant(gravity_x = 0.0,
     # init environment on startup
     reaction(startup) sim_seed, episode_dur -> obs, env_props, disturbance_schedule {=
         # create mujoco env; use the params below
-        self.env = MujocoEnv("src/mujoco_env/3dof_leg.xml")
+        self.env = MujocoEnv("sim/mujoco_env/3dof_leg.xml")
         seed = 0 if sim_seed.value is None else int(sim_seed.value)
         use_random_gravity = False
         use_random_tilt = False

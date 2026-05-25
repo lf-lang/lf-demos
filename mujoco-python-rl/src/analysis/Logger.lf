@@ -8,7 +8,7 @@ preamble{=
     import os
     import matplotlib.pyplot as plt
     import numpy as np
-    from src.types.observation import Observation
+    from sim.types.observation import Observation
 =}
 
 # this reactor logs observations of the leg state from each step in the environment

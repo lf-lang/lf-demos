@@ -4,12 +4,12 @@ target Python{
 
 # the file will define the reactors used for controlling the leg via PID control
 preamble{=
-    from src.types.observation import Observation
-    from src.types.command import Command
-    from src.types.target import Target
-    from src.types.diagnostics import Diagnostics
-    from src.controllers.pid import PID
-    from src.controllers.pid import Parameters
+    from sim.types.observation import Observation
+    from sim.types.command import Command
+    from sim.types.target import Target
+    from sim.types.diagnostics import Diagnostics
+    from sim.controllers.pid import PID
+    from sim.controllers.pid import Parameters
     import numpy as np
 =}
 

@@ -2,4 +2,5 @@
 **/fed-gen/
 **/build/
 **/bin/
+*.pyc
 
