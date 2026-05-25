@@ -158,4 +158,4 @@ The training directory contains the checkpoints of the training data. These file
 
 python3 training/train_ppo.py --config "the_config_file_name.json"
 
-The files would be saved in the training/checkpoint directory. 
+The files would be saved in the [training/checkpoints](training/checkpoints) directory. 
