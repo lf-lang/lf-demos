@@ -1,6 +1,17 @@
 # MuJoCo-Python-RL
 
-This demo uses LF and MuJoCo to simulate control of a Hexapod leg with 3 Degrees of Freedom in varying gravitational environments. The joints of the leg are controlled with PID controllers that use a learned gain schedule for consistent operation across user-specified gravitational environments.
+**A virtual-prototyping toolchain for PPO-based adaptive PID gain scheduling on a 3-DOF hexapod leg under varying gravity.**
+
+Simulate, evaluate, and retrain a reinforcement-learning controller that adaptively schedules joint-level PID gains for a hexapod leg operating under arbitrary gravitational conditions — from lunar surface gravity to high-gravity exoplanet benchmarks. The control architecture is built with [Lingua Franca](https://lf-lang.org) for deterministic, time-triggered execution around a [MuJoCo](https://mujoco.org) physics plant.
+
+## Capabilities
+
+- **Gravity sweep** — run the full control stack under any gravity vector; the learned policy generalizes across Moon (1.625 m/s²), Earth (9.81 m/s²), and beyond without retuning.
+- **Three motion tasks** — pose holding, sinusoidal joint trajectory tracking, and point-to-point end-effector trajectory tracking.
+- **Adaptive PID gain scheduling** — a PPO-trained `ActorCritic` network updates all 12 PID gains (Kp, Ki, Kd, Kaw per joint) at 100 Hz from the observed leg state.
+- **Domain randomization** — configurable gravity magnitude/direction, body mass, inertia, joint damping, observation noise, observation delay, and random disturbances stress-test controller robustness.
+- **Deterministic replay** — Lingua Franca's reactor model of computation ensures every run is bit-reproducible given the same seed and config.
+- **Full logging** — every simulation step writes joint states, targets, scheduled gains, torques, and errors to CSV; a summary plot is generated on shutdown.
 
 ## Repository Structure
 
@@ -104,6 +115,29 @@ To visualize a completed simulation run in MuJoCo, replay the logged trajectory:
 
 ```bash
 python3 sim/run_sim.py
+```
+
+## Troubleshooting for Mac users
+
+If the requirements-cpu.txt throws an error in Mac, manual installation of the packages maybe needed: 
+```
+pip install numpy
+pip install mujoco
+pip install torch
+pip install matplotlib
+```
+During running the program, if an error is thrown that reads:
+```
+RuntimeError: Cannot create a GUI FigureManager outside the main thread using the MacOS backend. Use a non-interactive backend like 'agg' to make plots on worker threads.
+```
+Use this command:
+```
+export MPLBACKEND=Agg
+```
+
+For running the simulation you may need to use mjpython instead of python3:
+```
+mjpython sim/run_sim.py
 ```
 
 ## Project Background
