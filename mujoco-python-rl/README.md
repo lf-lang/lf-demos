@@ -21,13 +21,18 @@ This demo uses LF and MuJoCo to simulate control of a Hexapod leg with 3 Degrees
 
 ## Installing Lingua Franca
 
-The Lingua Franca toolchain provides the `lfc` compiler used to build `src/Main.lf`.
+The Lingua Franca (LF) toolchain provides the `lfc` compiler used to build `src/Main.lf`.
+To install the LF command line interface (CLI) tools, refer to the [CLI Tools section](https://www.lf-lang.org/docs/installation/#install-script) of the [LF Installation guide](https://www.lf-lang.org/docs/installation/).
 
-This installs the nightly Lingua Franca CLI tools:
+For example, this installs the latest release of LF CLI tools:
+```
+curl -Ls https://install.lf-lang.org | bash -s cli
+```
+
+You may need to install some prerequisites for the LF CLI tools as well, using the following commands.
 ```
 sudo apt update
 sudo apt install gh git curl openjdk-17-jdk openjdk-17-jre cmake
-curl -Ls https://install.lf-lang.org | bash -s nightly cli
 ```
 
 ## Installing Python Dependencies
