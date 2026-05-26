@@ -83,6 +83,23 @@ To visualize the control of the leg in MuJoCo, which was generated using LF, run
 ```bash
 python3 sim/run_sim.py
 ```
+## Checkpoints
+
+The `training/checkpoints/` directory contains pre-trained PPO policy weights. These files are required for the LF simulation — removing the directory will cause a runtime error. See [training/checkpoints/README.md](training/checkpoints/README.md) for a description of each checkpoint.
+
+To retrain a policy from scratch using one of the provided configs:
+
+```bash
+python3 training/train_ppo.py --config configs/ppo_gain_schedule.json
+```
+
+New checkpoints are saved to the path specified by `checkpoint_path` in the config (defaults to `training/checkpoints/`).
+
+To visualize a completed simulation run in MuJoCo, replay the logged trajectory:
+
+```bash
+python3 sim/run_sim.py
+```
 
 ## Project Background
 
@@ -172,21 +189,3 @@ https://github.com/user-attachments/assets/bc4cff16-2b23-4ba1-affc-2f45bdf32d8b
 - Training for contact forces
 - Implement on hexapod stack
 - Validate on hardware
-
-## Checkpoints
-
-The `training/checkpoints/` directory contains pre-trained PPO policy weights. These files are required for the LF simulation — removing the directory will cause a runtime error. See [training/checkpoints/README.md](training/checkpoints/README.md) for a description of each checkpoint.
-
-To retrain a policy from scratch using one of the provided configs:
-
-```bash
-python3 training/train_ppo.py --config configs/ppo_gain_schedule.json
-```
-
-New checkpoints are saved to the path specified by `checkpoint_path` in the config (defaults to `training/checkpoints/`).
-
-To visualize a completed simulation run in MuJoCo, replay the logged trajectory:
-
-```bash
-python3 sim/run_sim.py
-```
