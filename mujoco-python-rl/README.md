@@ -2,60 +2,81 @@
 
 This demo uses LF and MuJoCo to simulate control of a Hexapod leg with 3 Degrees of Freedom in varying gravitational environments. The joints of the leg are controlled with PID controllers that use a learned gain schedule for consistent operation across user-specified gravitational environments.
 
+## Repository Structure
+
+| Folder | Description |
+|--------|-------------|
+| [configs/](configs/README.md) | JSON training configuration files for PPO runs |
+| [sim/](sim/README.md) | Python simulation library (MuJoCo env, PID, IK, RL wrapper, task generators) |
+| [src/](src/README.md) | Lingua Franca source files that wire the closed-loop control system |
+| [training/](training/README.md) | PPO training scripts (`ppo_agent.py`, `train_ppo.py`) |
+| [training/checkpoints/](training/checkpoints/README.md) | Saved PyTorch model checkpoints |
+
 ## Prerequisites
 
-This demo currently assumes that Python >=3.10 and LF >=0.11 are already installed in a Linux environment.
+- **Linux** (tested on Ubuntu 22.04+)
+- **Python ≥ 3.10**
+- **Java ≥ 17** (required by the Lingua Franca compiler)
+- **Lingua Franca ≥ 0.11** (`lfc` on your PATH)
 
-## Installation
+## Installing Lingua Franca
 
-First, clone this repository to your local machine.
+The Lingua Franca toolchain provides the `lfc` compiler used to build `src/Main.lf`.
 
-This project requires the dependencies found in requirements.txt.
+This installs the nightly Lingua Franca CLI tools:
+```
+sudo apt update
+sudo apt install gh git curl openjdk-17-jdk openjdk-17-jre cmake
+curl -Ls https://install.lf-lang.org | bash -s nightly cli
+```
 
-Start by creating a virtual environment in the project directory.
+## Installing Python Dependencies
+
+Clone this repository, then create and activate a virtual environment:
+
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 ```
 
-Check if pip is installed.
-```bash
-pip --version
-```
+### CUDA (NVIDIA GPU)
 
-If it is not installed:
-```bash
-python -m pip install --upgrade pip
-```
-
-Then,
 ```bash
 pip install -r requirements.txt
 ```
 
-This will install the dependencies necessary for running MuJoCo for the demo.
+### CPU-only (no NVIDIA GPU)
+
+Use the separate CPU requirements file, which omits all CUDA/nvidia packages and pulls the CPU-only PyTorch wheel:
+
+```bash
+pip install -r requirements-cpu.txt
+```
+
+> **Note:** Training is significantly slower without a GPU, but running the pre-trained policies in the LF simulation is fast on CPU since inference over a small MLP is inexpensive.
 
 ## Compile and Run Demo
 
-Now that the proper dependencies have been installed in the environment, start compilation by running:
+With the virtual environment active and dependencies installed, compile and run:
 
 ```bash
 lfc src/Main.lf
 bin/Main
 ```
 
-If running Main.py fails due to an error similar to:
+If the run fails with:
 
-```bash
+```
 ModuleNotFoundError: No module named 'sim'
 ```
 
-run this command,
+export the project root to `PYTHONPATH` first:
+
 ```bash
 export PYTHONPATH=$PYTHONPATH:$(pwd)
+bin/Main
 ```
-
-and run Main.py again.
 
 To visualize the control of the leg in MuJoCo, which was generated using LF, run:
 
@@ -154,8 +175,18 @@ https://github.com/user-attachments/assets/bc4cff16-2b23-4ba1-affc-2f45bdf32d8b
 
 ## Checkpoints
 
-The training directory contains the checkpoints of the training data. These files are needed for the execution, because it has the metadata from the training and will be used when we run the simulation as per the README. Removing this directory now will throw an error. However, the user can generate the files from the config directory using the command:
+The `training/checkpoints/` directory contains pre-trained PPO policy weights. These files are required for the LF simulation — removing the directory will cause a runtime error. See [training/checkpoints/README.md](training/checkpoints/README.md) for a description of each checkpoint.
 
-python3 training/train_ppo.py --config "the_config_file_name.json"
+To retrain a policy from scratch using one of the provided configs:
 
-The files would be saved in the [training/checkpoints](training/checkpoints) directory. 
+```bash
+python3 training/train_ppo.py --config configs/ppo_gain_schedule.json
+```
+
+New checkpoints are saved to the path specified by `checkpoint_path` in the config (defaults to `training/checkpoints/`).
+
+To visualize a completed simulation run in MuJoCo, replay the logged trajectory:
+
+```bash
+python3 sim/run_sim.py
+```
