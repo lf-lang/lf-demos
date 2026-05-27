@@ -15,7 +15,7 @@ src/
 │   ├── pid/
 │   │   └── PID.lf                 # PID joint controller reactor
 │   └── kinematics/
-│       └── InverseKinematics.lf   # IK reactor: maps Cartesian targets to joint space
+│       └── InverseKinematics.lf   # Inverse Kinematics reactor for mapping Cartesian targets to joint space
 ├── plant/
 │   ├── Plant.lf                   # Drives the MuJoCo simulation forward in time
 │   ├── ObsNoise.lf                # Injects Gaussian noise into observations
