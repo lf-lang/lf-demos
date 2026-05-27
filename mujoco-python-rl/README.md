@@ -135,14 +135,16 @@ Use this command:
 export MPLBACKEND=Agg
 ```
 
-For running the simulation you may need to use mjpython instead of python3:
+For running the simulation, you may need to use `mjpython` (special launcher for MacOS) instead of `python3`:
 ```
 mjpython sim/run_sim.py
 ```
 
+To learn more about the `mjpython` command for MacOS, see [this documentation](https://mujoco.readthedocs.io/en/3.1.2/python.html#passive-viewer).
+
 ## Project Background
 
-This project was inspired by The Luminosity Lab's CHARLOTTE (Crater Hydrogen And Regolith Laboratory for Observation of Technical Terrain Environments) hexapod platform that was designed for exploring craters on the moon. Since the project could only be tested on Earth, it was designed to operate under the assumption of Earth's gravitational acceleration. But, what if we were able to create a controller for the legs that allowed it to operate agnostic to the gravitational acceleration it's experiencing?
+This project was inspired by The Luminosity Lab's CHARLOTTE (Crater Hydrogen And Regolith Laboratory for Observation of Technical Terrain Environments) hexapod platform, which was designed for exploring craters on the moon. Since the project could only be tested on Earth, it was designed to operate under the assumption of Earth's gravitational acceleration. But, what if we were able to create a controller for the legs that allowed it to operate agnostic to the gravitational acceleration it's experiencing?
 
 
 ## Problem Description
