@@ -2,5 +2,6 @@
 **/fed-gen/
 **/build/
 **/bin/
+**/.venv/
 *.pyc
 
