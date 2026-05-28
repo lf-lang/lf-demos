@@ -4,6 +4,8 @@
 
 Simulate, evaluate, and retrain a reinforcement-learning controller that adaptively schedules joint-level PID gains for a hexapod leg operating under arbitrary gravitational conditions — from lunar surface gravity to high-gravity exoplanet benchmarks. The control architecture is built with [Lingua Franca](https://lf-lang.org) for deterministic, time-triggered execution around a [MuJoCo](https://mujoco.org) physical plant.
 
+Currently supported on Linux and Mac OS X.
+
 ## Capabilities
 
 - **Gravity sweep** — run the full control stack under any gravity vector; the learned policy generalizes across Moon (1.625 m/s²), Earth (9.81 m/s²), and beyond without retuning.
@@ -22,10 +24,13 @@ Simulate, evaluate, and retrain a reinforcement-learning controller that adaptiv
 | [src/](src/README.md) | Lingua Franca source files that wire the closed-loop control system |
 | [training/](training/README.md) | PPO training scripts (`ppo_agent.py`, `train_ppo.py`) |
 | [training/checkpoints/](training/checkpoints/README.md) | Saved PyTorch model checkpoints |
+| [logs/](logs/README.md) | Directory to be populated with the LF + MuJoCo simulation results |
 
 ## Prerequisites
 
-- **Linux** (tested on Ubuntu 22.04+)
+- **Operating System**
+  - **Linux** (tested on Ubuntu 22.04 and above)
+  - **Mac OS X** (see [Troubleshooting Instructions](#troubleshooting-instructions-for-mac-users) for Mac-specific guidlines)
 - **Python ≥ 3.10**
 - **Java ≥ 17** (required by the Lingua Franca compiler)
 - **Lingua Franca ≥ 0.11** (`lfc` on your PATH)
@@ -119,7 +124,7 @@ To visualize a completed simulation run in MuJoCo, replay the logged trajectory:
 python3 sim/run_sim.py
 ```
 
-## Troubleshooting for Mac users
+## Troubleshooting instructions for Mac users
 
 If the requirements-cpu.txt throws an error in Mac, manual installation of the packages maybe needed: 
 ```
@@ -137,12 +142,16 @@ Use this command:
 export MPLBACKEND=Agg
 ```
 
-For running the simulation, you may need to use `mjpython` (special launcher for MacOS) instead of `python3`:
+To visualize the simulation, you may need to use `mjpython` (special launcher for MacOS) instead of `python3`:
 ```
 mjpython sim/run_sim.py
 ```
 
 To learn more about the `mjpython` command for MacOS, see [this documentation](https://mujoco.readthedocs.io/en/3.1.2/python.html#passive-viewer).
+
+## Simulation Results
+
+After execution of the simulation, the simulation results will be recorded under the [logs/](logs/README.md) directory. The simulation results include the complete trajectory and physical information for each joint/axis in a `.csv` file and the visualization of the trajectory in a `.png` file, as well as the disturbance schedule in a `.json` file.
 
 ## Project Background
 
