@@ -1,8 +1,8 @@
-# MuJoCo-Python-RL
+# RL-Based Robotic Leg Controller Prototyping and Simulation using Lingua Franca and MuJoCo
 
 **A virtual-prototyping toolchain for PPO-based adaptive PID gain scheduling on a 3-DOF hexapod leg under varying gravity.**
 
-Simulate, evaluate, and retrain a reinforcement-learning controller that adaptively schedules joint-level PID gains for a hexapod leg operating under arbitrary gravitational conditions — from lunar surface gravity to high-gravity exoplanet benchmarks. The control architecture is built with [Lingua Franca](https://lf-lang.org) for deterministic, time-triggered execution around a [MuJoCo](https://mujoco.org) physics plant.
+Simulate, evaluate, and retrain a reinforcement-learning controller that adaptively schedules joint-level PID gains for a hexapod leg operating under arbitrary gravitational conditions — from lunar surface gravity to high-gravity exoplanet benchmarks. The control architecture is built with [Lingua Franca](https://lf-lang.org) for deterministic, time-triggered execution around a [MuJoCo](https://mujoco.org) physical plant.
 
 ## Capabilities
 
@@ -55,6 +55,8 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install --upgrade pip
 ```
+
+Using the following commands, you can install all necessary dependencies including MuJoCo.
 
 ### CUDA (NVIDIA GPU)
 
@@ -153,7 +155,7 @@ Hexapod locomotion (and most walking robots for that matter) assumes a known dir
 
 The initial goal for this learned gain schedule is that the leg maintains stable tracking and locomotion under any gravitational acceleration. This can be achieved using Adaptive Model-Free Control. This project proposes using Reinforcement Learning (PPO) to learn the adaptive gain schedule that enables the joint-specific PID controllers to perform consistently across a range of gravitational accelerations.
 
-## Plant
+## Physical Plant using MuJoCo Environment
 
 <p align="center">
 <img width="800" height="700" alt="3-DoF Hexapod Leg in MuJoCo environment" src="https://github.com/user-attachments/assets/97b2714c-cdba-439a-a641-7d01fb8637c8" />
