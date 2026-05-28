@@ -25,7 +25,7 @@ Currently supported on Linux and Mac OS X.
 | [training/](training/README.md) | PPO training scripts (`ppo_agent.py`, `train_ppo.py`) |
 | [training/checkpoints/](training/checkpoints/README.md) | Saved PyTorch model checkpoints |
 | [logs/](logs/README.md) | Directory to be populated with the LF + MuJoCo simulation results |
-| [results/](results/README.md) | Directory with the graphs of the results |
+| [results/](results/README.md) | Directory with the graphs of the results in our publication under review with FDL |
 
 ## Prerequisites
 
