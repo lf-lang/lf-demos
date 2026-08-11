@@ -1,0 +1,40 @@
+target Python{
+    keepalive: true
+}
+
+preamble{=
+    import numpy as np
+    from sim.types.target import Target
+    from sim.tasks.target_gen import TargetGenerator
+    from sim.tasks.target_gen import Task
+=}
+
+# this reactor generates the Targets that feed the IK reactor
+reactor TargetGenerator{
+    input planning_trigger
+    input desired_task
+    input env_props
+    output generated_target
+
+    state ee_target
+    state t = 0.0
+    state dt = 0.01
+    state task
+    state generator
+
+    # on receiving the env params, set the desired task for the plant to execute
+    reaction(env_props) desired_task{=
+        self.generator = TargetGenerator(env_props.value)
+        self.task = self.generator.set_task(desired_task.value)
+        self.ee_pos = None
+        self.ee_vel = None
+    =}
+
+    # triggered on timer 
+    # updates the Target for the task the plant needs to execute
+    reaction(planning_trigger) -> generated_target{=
+        self.ee_target = self.generator.compute_target(self.t) # Target struct
+        self.t += self.dt
+        generated_target.set(self.ee_target)
+    =}
+}

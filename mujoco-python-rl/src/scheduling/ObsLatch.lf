@@ -1,0 +1,27 @@
+target Python {
+    keepalive: true
+}
+
+preamble{=
+    from sim.types.observation import Observation
+    import numpy as np
+=}
+
+# this reactor stores the latest observation of the environment
+reactor ObsLatch{
+    input obs_in
+    output obs_out
+
+    state last_obs
+    state env
+
+    reaction(startup) {=
+        self.last_obs = Observation(q=np.zeros(3), qd=np.zeros(3))
+    =}
+
+    reaction(obs_in) -> obs_out{=
+        assert isinstance(obs_in.value, Observation)
+        self.last_obs = obs_in.value
+        obs_out.set(self.last_obs)
+    =}
+}

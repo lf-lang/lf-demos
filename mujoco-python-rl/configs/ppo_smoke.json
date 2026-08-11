@@ -1,0 +1,20 @@
+{
+  "seed": 0,
+  "total_timesteps": 32,
+  "rollout_steps": 16,
+  "episode_steps": 40,
+  "policy_interval_steps": 4,
+  "learning_rate": 0.0003,
+  "gamma": 0.99,
+  "gae_lambda": 0.95,
+  "clip_coef": 0.2,
+  "entropy_coef": 0.01,
+  "value_coef": 0.5,
+  "max_grad_norm": 0.5,
+  "update_epochs": 2,
+  "minibatch_size": 8,
+  "hidden_sizes": [64, 64],
+  "checkpoint_path": "training/checkpoints/ppo_smoke.pt",
+  "episode_log_path": "training/logs/ppo_smoke_episodes.csv",
+  "update_log_path": "training/logs/ppo_smoke_updates.csv"
+}

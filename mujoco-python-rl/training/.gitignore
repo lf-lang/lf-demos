@@ -1,0 +1,6 @@
+.venv
+src-gen
+bin
+include
+commands.txt
+MUJOCO_LOG.txt

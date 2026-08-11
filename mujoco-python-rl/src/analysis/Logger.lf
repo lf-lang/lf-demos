@@ -1,0 +1,182 @@
+target Python {
+    keepalive: true
+}
+
+preamble{=
+    import csv
+    import json
+    import os
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from sim.types.observation import Observation
+=}
+
+# this reactor logs observations of the leg state from each step in the environment
+reactor Logger(log_path = "logs/trajectory.csv",
+               plot_path = "logs/trajectory.png",
+               disturbance_log_path = "logs/disturbance_schedule.json") {
+
+    input obs
+    input ee_targ
+    input j_targ
+    input disturbance_schedule
+    input controller_params
+    input applied_torques
+
+    state file
+    state writer
+    state header_written = False
+    state data
+    state q_dim = 0
+    state qd_dim = 0
+    state task_e_dim = 0
+    state disturbance_logged = False
+
+    # create file to save log on startup
+    reaction(startup) {=
+        os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
+        self.file = open(self.log_path, "w", newline="")
+        self.writer = csv.writer(self.file)
+        self.data = []
+    =}
+
+    # saves a json for the run that logs the disturbance schedule
+    reaction(disturbance_schedule) {=
+        if disturbance_schedule.value is None or self.disturbance_logged:
+            return
+
+        os.makedirs(os.path.dirname(self.disturbance_log_path), exist_ok=True)
+
+        serializable_schedule = []
+        for timestep, disturbances in enumerate(disturbance_schedule.value):
+            timestep_entries = []
+            for disturbance in disturbances:
+                timestep_entries.append(
+                    {
+                        "time_index": int(disturbance.time_index),
+                        "dist_type": disturbance.dist_type,
+                        "joint_id": None if disturbance.joint_id is None else int(disturbance.joint_id),
+                        "magnitude": np.asarray(disturbance.magnitude, dtype=float).tolist(),
+                        "duration": int(disturbance.duration),
+                    }
+                )
+            if timestep_entries:
+                serializable_schedule.append(
+                    {
+                        "timestep": timestep,
+                        "disturbances": timestep_entries,
+                    }
+                )
+
+        with open(self.disturbance_log_path, "w") as disturbance_file:
+            json.dump(serializable_schedule, disturbance_file, indent=2)
+
+        self.disturbance_logged = True
+    =}
+
+    # on receiving an observation, append data to file
+    reaction(obs) ee_targ, j_targ, disturbance_schedule, controller_params, applied_torques {=
+        observation = obs.value # this is an Observation struct
+        ee_target = ee_targ.value # Target struct
+        j_target = j_targ.value # Target struct
+        gains = controller_params.value
+        torqs = None if applied_torques.value is None else applied_torques.value.torques
+
+        q = observation.q
+        qd = observation.qd
+        ee_pos = observation.ee_pos
+        ee_lin_vel = observation.ee_lin_vel
+        seed = -1 if observation.seed is None else observation.seed
+        masses = np.array([]) if observation.masses is None else observation.masses
+        inertias = np.array([]) if observation.inertias is None else observation.inertias
+        damping = np.array([]) if observation.damping is None else observation.damping
+        gravity = np.array([]) if observation.gravity is None else observation.gravity
+        noise = 0.0 if observation.noise_std is None else observation.noise_std
+
+        pos_targs = j_target.pos_targs
+        vel_targs = j_target.vel_targs
+        task_pos = ee_target.task_pos
+        task_vel = ee_target.task_vel
+
+        if pos_targs is None or vel_targs is None or task_pos is None or task_vel is None or ee_pos is None or ee_lin_vel is None:
+            return
+
+        joint_e = pos_targs - q
+        joint_ed = vel_targs - qd
+        task_e = task_pos - ee_pos
+        task_ed = task_vel - ee_lin_vel
+
+        if not self.header_written:
+            self.q_dim = len(q)
+            self.qd_dim = len(qd)
+            self.task_e_dim = len(task_e)
+            header = []
+            header += [f"q{i}" for i in range(len(q))]
+            header += [f"qd{i}" for i in range(len(qd))]
+            header += [f"joint_e{i}" for i in range(len(joint_e))]
+            header += [f"joint_ed{i}" for i in range(len(joint_ed))]
+            header += [f"task_e{i}" for i in range(len(task_e))]
+            header += [f"task_ed{i}" for i in range(len(task_ed))]
+            header += ["seed"]
+            header += [f"masses{i}" for i in range(len(masses))]
+            header += [f"inertias{i}" for i in range(len(inertias))]
+            header += [f"damping{i}" for i in range(len(damping))]
+            header += [f"gravity{i}" for i in range(len(gravity))]
+            header += ["noise_std"]
+            header += [f"kp{i}" for i in range(len(q))]
+            header += [f"ki{i}" for i in range(len(q))]
+            header += [f"kd{i}" for i in range(len(q))]
+            header += [f"kaw{i}" for i in range(len(q))]
+            header += [f"torque{i}" for i in range(len(q))]
+            self.writer.writerow(header)
+            self.header_written = True
+
+        row = list(q) + list(qd) + list(joint_e) + list(joint_ed) + list(task_e) + list(task_ed) + [seed] + list(masses) + list(inertias) + list(damping) + list(gravity) + [noise]
+        if gains is not None:
+            row += list(gains.kp) + list(gains.ki) + list(gains.kd) + list(gains.kaw)
+        else:
+            row += [np.nan] * (4 * len(q))
+        if torqs is not None:
+            row += list(torqs)
+        else:
+            row += [np.nan] * len(q)
+        self.writer.writerow(row)
+
+        # store for plotting
+        self.data.append(row)
+    =}
+
+    # save file and create resulting plot on shutdown
+    reaction(shutdown) {=
+        if self.file:
+            self.file.close()
+
+        if len(self.data) == 0:
+            return
+
+        data_np = np.array(self.data)
+        fsize = 16
+
+        q_end = self.q_dim
+        qd_end = q_end + self.qd_dim
+        task_e_start = qd_end + self.q_dim + self.qd_dim
+        task_e_end = task_e_start + self.task_e_dim
+
+        fig, axes = plt.subplots(3, 1, figsize=(10, 10), sharex=True)
+        series_groups = [
+            ("q (rad)", data_np[:, :q_end]),
+            ("qd (rad/s)", data_np[:, q_end:qd_end]),
+            ("task error (m)", data_np[:, task_e_start:task_e_end]),
+        ]
+        for axis, (label, values) in zip(axes, series_groups):
+            for i in range(values.shape[1]):
+                axis.plot(values[:, i], label=f"{label}{i}")
+            axis.set_ylabel(label, fontsize=fsize)
+            axis.legend()
+
+        axes[-1].set_xlabel("Timestep", fontsize=fsize)
+        plt.tight_layout()
+        plt.savefig(self.plot_path)
+        plt.close()
+    =}
+}

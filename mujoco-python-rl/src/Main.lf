@@ -1,0 +1,116 @@
+target Python{
+    keepalive: true
+}
+
+# import reactors
+import Logger from "analysis/Logger.lf"
+import Plant from "plant/Plant.lf"
+import ObsLatch from "scheduling/ObsLatch.lf"
+import TargetLatch from "scheduling/TargetLatch.lf"
+import PIDJointController from "control/pid/PID.lf"
+import InverseKinematics from "control/kinematics/InverseKinematics.lf"
+import TargetGenerator from "planning/TargetGenerator.lf"
+import ObsNoise from "plant/ObsNoise.lf"
+import ObsDelay from "plant/ObsDelay.lf"
+import PolicyGainScheduler from "control/PolicyGainScheduler.lf"
+
+# init with desired gravity
+main reactor(gravity_x = 0.0,
+             gravity_y = 0.0,
+             gravity_z = -1.625){ #1.625, 9.81, 12.164
+
+    preamble{=
+        import numpy as np
+    =}
+
+    # physics step rate
+    timer physics_timer(0, 2 msec)
+
+    # control rate
+    timer control_timer(0, 2 msec)
+    
+    # planning rate
+    timer planning_timer(0, 10 msec)#10
+
+    # learned gain policy rate
+    timer policy_timer(0, 10 msec)
+
+    # create reactors
+    plant = new Plant(gravity_x=gravity_x, gravity_y=gravity_y, gravity_z=gravity_z)
+    controller = new PIDJointController(num_actuators=3)
+    logger = new Logger()
+    obs_latch = new ObsLatch()
+    ee_target_latch = new TargetLatch()
+    joint_target_latch = new TargetLatch()
+    ik = new InverseKinematics()
+    tgen = new TargetGenerator()
+    noise = new ObsNoise()
+    delay = new ObsDelay()
+    policy = new PolicyGainScheduler()
+
+    # set sim params
+    state step_count = 0
+    state max_steps = 2000
+    state sim_seed = 0
+
+    # set controller params on startup
+    reaction(startup) -> tgen.desired_task, policy.policy_task, plant.sim_seed, plant.episode_dur {=
+        selected_task = Task.SINUSOID
+        plant.episode_dur.set(self.max_steps)
+        plant.sim_seed.set(self.sim_seed)
+        tgen.desired_task.set(selected_task)
+        policy.policy_task.set(selected_task)
+    =}
+
+    # step the environment at the rate of the physics timer
+    reaction(physics_timer) -> plant.physics_trigger {=
+        controller_steps = self.step_count + 1
+        self.step_count = controller_steps
+
+        plant.physics_trigger.set(True)
+
+        if controller_steps >= self.max_steps:
+            request_stop()
+    =}
+
+    # update the control effort at the rate of the control timer
+    reaction(control_timer) -> controller.control_trigger {=
+        controller.control_trigger.set(True)
+    =}
+
+    # update the control target at the rate of the planning timer
+    reaction(planning_timer) -> tgen.planning_trigger {=
+        tgen.planning_trigger.set(True)
+    =}
+
+    # update learned PID gains at the PPO policy rate
+    reaction(policy_timer) -> policy.policy_trigger {=
+        policy.policy_trigger.set(True)
+    =}
+    
+    # connect input and output ports between reactors
+    plant.env_props -> ik.env_props
+    plant.env_props -> tgen.env_props
+    plant.env_props -> controller.env_props
+    plant.env_props -> noise.env_props
+    plant.disturbance_schedule -> logger.disturbance_schedule
+    plant.obs -> noise.obs_in
+    noise.obs_out -> delay.obs_in
+    delay.obs_out -> obs_latch.obs_in
+    obs_latch.obs_out -> logger.obs
+    obs_latch.obs_out -> controller.joint_states
+    tgen.generated_target -> ee_target_latch.target_in
+    ee_target_latch.target_out -> logger.ee_targ
+    ee_target_latch.target_out -> ik.desired_ee
+    ik.joint_targets -> joint_target_latch.target_in
+    joint_target_latch.target_out -> controller.joint_targets
+    joint_target_latch.target_out -> logger.j_targ
+    obs_latch.obs_out -> policy.obs
+    ee_target_latch.target_out -> policy.ee_target
+    joint_target_latch.target_out -> policy.joint_targets
+    policy.controller_params -> controller.controller_params
+    policy.controller_params -> logger.controller_params
+    controller.output_effort -> policy.applied_torques after 0 # avoids causality loop
+    controller.output_effort -> logger.applied_torques
+    controller.output_effort -> plant.cmd after 0 # avoids causality loop
+}
