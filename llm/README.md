@@ -75,21 +75,21 @@ The demo was tested with the following software requirements.
 
 Make sure the environment is properly configured to use CUDA for optimal GPU acceleration.
 # Files and directories in this repository
-  - **`llm_base_class.lf`** - Contains the base reactors LlmA, LlmB, and Judge.
-  - **`llm_quiz_game.lf`** - Lingua Franca program that defines the quiz game reactors (LLM agent A, LLM agent B and Judge).
+  - **`LlmBaseClass.lf`** - Contains the base reactors LlmA, LlmB, and Judge.
+  - **`LlmQuizGame.lf`** - Lingua Franca program that defines the quiz game reactors (LLM agent A, LLM agent B and Judge).
 # Execution Workflow 
 ### Step 1: 
-Run the **`llm_quiz_game.lf`**.  
+Run the **`LlmQuizGame.lf`**.  
 **Note:** Ensure that you specify the correct file paths. \
 Run the following commands:  
 ```
-lfc src/llm_quiz_game.lf
+lfc src/LlmQuizGame.lf
 ```
 ### Step 2: Run the binary file and input the quiz question
 Run the following commands:  
 
 ```
-./bin/llm_quiz_game
+./bin/LlmQuizGame
 ```
 The system will ask for entering the quiz question which is to be obtained from the keyboard input. \
 Example output printed on the terminal:
