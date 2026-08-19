@@ -242,3 +242,6 @@ https://github.com/user-attachments/assets/bc4cff16-2b23-4ba1-affc-2f45bdf32d8b
 - Training for contact forces
 - Implement on hexapod stack
 - Validate on hardware
+
+## Contributor
+[Ashton Mitchell](https://github.com/ashton-mitchell)
